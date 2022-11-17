@@ -1,7 +1,5 @@
 header{
     text-align: center;
-    margin-top: 50px;
-    margin-bottom: 50px;
 }
 
 #name{
@@ -9,15 +7,29 @@ header{
 }
 
 .sectionTitle{
-    font-size: 24px;
+    font-size: 24pt;
     font-weight: bold;
-    margin-bottom: -15px;
 }
 
 .years{
+    font-size: 12pt;
     font-weight: bold;
+    margin-bottom: -20px;
 }
 
 .bold{
     font-weight: bold;
+}
+
+.subsectionTitles{
+    font-size: 16pt;
+}
+
+.minor{
+    font-style: italic;
+    margin-top: -20px;
+}
+
+.desc{
+    margin-top: -15px;
 }
