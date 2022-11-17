@@ -35,6 +35,10 @@ header{
     margin-top: -15px;
 }
 
+.tabbedBody{
+    margin-left: 50px;
+}
+
 body{
     margin: 75px;
 }
