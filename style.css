@@ -9,6 +9,7 @@ header{
 .sectionTitle{
     font-size: 24pt;
     font-weight: bold;
+    margin-bottom: 15px;
 }
 
 .years{
@@ -32,4 +33,8 @@ header{
 
 .desc{
     margin-top: -15px;
+}
+
+body{
+    margin: 75px;
 }
