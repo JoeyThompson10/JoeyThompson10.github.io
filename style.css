@@ -1,3 +1,16 @@
+/* Colors */
+:root {
+  --primary-bg: #181818;
+  --secondary-bg: #1c1c1c;
+  --border-color: #2c2c2c;
+  
+  --text-color: #e6e6e6; 
+  --subtext-color: #b0b0b0;
+  
+  --accent-color: #d9534f;  
+}
+
+
 /* Reset some default browser styles */
 body, h1, h2, h3, h4, p, ul, li, a {
   margin: 0;
@@ -8,8 +21,8 @@ body, h1, h2, h3, h4, p, ul, li, a {
 
 /* Apply a background color */
 body {
-  background-color: #1c1c1c;
-  color: #e6e6e6;
+  background-color: var(--primary-bg);
+  color: var(--text-color);
   line-height: 1.6;
   margin: 0 auto;
   max-width: 800px;
@@ -18,11 +31,11 @@ body {
 
 /* Style header area */
 header {
-  background-color: #333;
-  color: #fff;
+  background-color: var(--secondary-bg);
+  color: var(--text-color);
   text-align: center;
   padding: 10px 0;
-  border-bottom: 4px solid #50b3a2;
+  border-bottom: 4px solid var(--accent-color);
 }
 
 header strong {
@@ -35,8 +48,8 @@ header strong {
 .contentSection {
   margin: 20px 0;
   padding: 20px;
-  background-color: #333;
-  border: 1px solid #444;
+  background-color: var(--secondary-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0,0,0,0.2);
 }
@@ -44,7 +57,7 @@ header strong {
 .sectionTitle {
   font-size: 1.5em;
   margin-bottom: 10px;
-  color: #50b3a2;
+  color: var(--text-color);
 }
 
 /* Style list items in projects */
@@ -58,13 +71,13 @@ li {
 
 .desc {
   font-size: 0.9em;
-  color: #aaa;
+  color: var(--subtext-color);
   margin-top: 5px;
 }
 
 /* Style anchor elements */
 a {
-  color: #50b3a2;
+  color: var(--text-color);
   text-decoration: none;
 }
 
@@ -76,9 +89,9 @@ a:hover, a:focus {
 #contact a {
   margin-right: 10px;
   display: inline-block;
-  border-bottom: 1px dotted #50b3a2;
+  border-bottom: 1px dotted var(--text-color);
 }
 
 #contact a:hover, #contact a:focus {
-  border-bottom: 1px solid #50b3a2;
+  border-bottom: 1px solid var(--text-color);
 }
