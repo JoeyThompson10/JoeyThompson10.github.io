@@ -1,29 +1,41 @@
-<!--thompsonswe.com-->
-<!--linux push test-->
-
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Joey Thompson</title>
-        <link rel="stylesheet" href="style.css">
-        <script src="../MyDomainScripts"></script>
-    </head>
+  <head>
+    <title>Joey Thompson</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
 
-    <!--https://www.w3schools.com/howto/howto_js_sidenav.asp-->
-    <body>
-        <nav id="mySidenav" class="sidenav">
-            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-            <a href="#">Home</a>
-            <a href="./Pages/Resume.html">Resume</a>
-            <a href="./Pages/Contact.html">Contact</a>
-        </nav>
-        <!-- Use any element to open the sidenav -->
-        <button type="button" onclick="openNav()">Menu</button>
+  <body>
+    <header>
+      <strong id="name">Joseph Thompson</strong>
+      <p>Senior Software Engineering Student</p>
+    </header>
+    
+    <section id="education" class="contentSection">
+      <h2 class="sectionTitle">Education</h2>
+      <p>Studying Software Engineering at Kennesaw State University, expected to graduate in December 2023.</p>
+    </section>
 
-        <header>
-            <strong id="name">
-                Joseph Thompson
-            </strong>
-        </header>
-    </body>
+    <section id="contact" class="contentSection">
+        <h2 class="sectionTitle">Contact</h2>
+        <p>
+            <a href = "mailto: joey@thompsonswe.com">Joey@ThompsonSWE.com</a> ·
+            <a href="http://www.linkedin.com/in/joeythompson10">linkedin.com/in/joeythompson10</a>
+        </p>
+      </section>
+
+    <section id="projects" class="contentSection">
+      <h2 class="sectionTitle">Projects</h2>
+      <ul>
+        <li>
+          <a href="https://thompsonswe.com/SymptomChecker/">SymptomChecker</a>
+          <p class="desc">A group project aimed at diagnosing medical symptoms.</p>
+        </li>
+        <li>
+          <a href="https://illumiscore.com">illumiscore</a>
+          <p class="desc">A product that flashes LIFX Wi-Fi enabled bulbs when your sports team scores.</p>
+        </li>
+      </ul>
+    </section>
+  </body>
 </html>
