@@ -1,97 +1,114 @@
-/* Colors */
-:root {
-  --primary-bg: #181818;
-  --secondary-bg: #1c1c1c;
-  --border-color: #2c2c2c;
-  
-  --text-color: #e6e6e6; 
-  --subtext-color: #b0b0b0;
-  
-  --accent-color: #d9534f;  
-}
-
-
-/* Reset some default browser styles */
-body, h1, h2, h3, h4, p, ul, li, a {
+/* Basic Reset */
+* {
   margin: 0;
   padding: 0;
-  border: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
 }
 
-/* Apply a background color */
+html {
+  font-size: 16px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color: #333;
+}
+
 body {
-  background-color: var(--primary-bg);
-  color: var(--text-color);
-  line-height: 1.6;
+  background-color: #f8f8f8;
   margin: 0 auto;
-  max-width: 800px;
-  padding: 20px;
+  max-width: 960px;
+  padding: 0 1.5rem;
 }
 
-/* Style header area */
+/* Header Styles */
 header {
-  background-color: var(--secondary-bg);
-  color: var(--text-color);
+  background: #2c3e50; /* Dark blue instead of black */
+  color: #ffffff;
+  padding: 1rem 0;
   text-align: center;
-  padding: 10px 0;
-  border-bottom: 4px solid var(--accent-color);
 }
 
-header strong {
-  display: block;
-  font-size: 2em;
-  margin-bottom: 5px;
+header h1 {
+  margin: 0.5rem 0;
+  font-size: 2.5rem;
 }
 
-/* Style sections */
-.contentSection {
-  margin: 20px 0;
-  padding: 20px;
-  background-color: var(--secondary-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+header p {
+  font-size: 1.2rem;
+  margin-top: 0.5rem;
 }
 
-.sectionTitle {
-  font-size: 1.5em;
-  margin-bottom: 10px;
-  color: var(--text-color);
+/* Navbar Styles */
+nav ul {
+  list-style-type: none;
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
 }
 
-/* Style list items in projects */
-ul {
-  list-style: none;
+nav ul li {
+  margin: 0 1rem;
 }
 
-li {
-  margin-bottom: 10px;
-}
-
-.desc {
-  font-size: 0.9em;
-  color: var(--subtext-color);
-  margin-top: 5px;
-}
-
-/* Style anchor elements */
-a {
-  color: var(--text-color);
+nav ul li a {
+  color: #fff;
   text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
 }
 
-a:hover, a:focus {
-  text-decoration: underline;
+nav ul li a:hover {
+  color: #2980b9; /* Lighter blue for hover effect */
 }
 
-/* Style Contact links */
-#contact a {
-  margin-right: 10px;
-  display: inline-block;
-  border-bottom: 1px dotted var(--text-color);
+/* Section Styles */
+section {
+  background: #ffffff;
+  margin-top: 2rem;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-#contact a:hover, #contact a:focus {
-  border-bottom: 1px solid var(--text-color);
+section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+section p {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+/* Footer Styles */
+footer {
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 1rem;
+  background: #2c3e50; /* Consistent with header background */
+  color: #ffffff;
+  margin-top: 2rem;
+}
+
+footer a {
+  color: #2980b9;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+footer a:hover {
+  color: #ff6347;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  nav ul {
+      flex-direction: column;
+      margin: 0;
+  }
+
+  nav ul li {
+      margin-bottom: 0.5rem;
+  }
 }
