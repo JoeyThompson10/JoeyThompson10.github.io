@@ -4,71 +4,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Joseph Thompson - Portfolio</title>
+  <title>Thompson SWE LLC | Software engineering in Atlanta</title>
+  <meta name="description" content="Thompson SWE LLC is a veteran-owned, one-engineer software firm in Atlanta, Georgia. Warehouse and supply chain systems, web applications, and machine learning.">
+  <link rel="canonical" href="https://thompsonswe.com/">
+  <meta property="og:title" content="Thompson SWE LLC">
+  <meta property="og:description" content="A veteran-owned, one-engineer software firm in Atlanta. Warehouse and supply chain systems, web applications, and machine learning.">
+  <meta property="og:url" content="https://thompsonswe.com/">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23203a4c'/%3E%3Crect x='5' y='22' width='22' height='4' fill='%23f2b705'/%3E%3Cpath d='M8 7h16v4h-6v9h-4v-9H8z' fill='%23eef0ee'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <header>
-    <nav id="navbar">
-      <ul>
-        <li><a href="#projects">Projects</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <a class="brand" href="/">Thompson SWE</a>
+    <nav aria-label="Sections">
+      <a href="#work">Work</a>
+      <a href="#products">Products</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
     </nav>
-    <h1>Joseph Thompson</h1>
-    <p>Software Consultant</p>
   </header>
 
-  <main>
-    <section id="projects">
-      <h2 class="sectionTitle">Projects</h2>
-      <ul>
+  <main id="main">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Software for supply chains, built by the engineer you hire.</h1>
+        <p class="lede">Thompson SWE is a veteran-owned software firm in Atlanta with one engineer. You talk to the person writing the code, from the first call to the last deploy.</p>
+        <a class="button" href="mailto:joey@thompsonswe.com">Email Joey</a>
+      </div>
+
+      <dl class="plate" aria-label="Company details">
+        <div class="plate-name">
+          <dt>Company</dt>
+          <dd>Thompson SWE LLC</dd>
+        </div>
+        <div>
+          <dt>Trade</dt>
+          <dd>Custom software engineering</dd>
+        </div>
+        <div>
+          <dt>Base</dt>
+          <dd>Atlanta, Georgia</dd>
+        </div>
+        <div>
+          <dt>Ownership</dt>
+          <dd>100% veteran-owned</dd>
+        </div>
+        <div>
+          <dt>Crew</dt>
+          <dd>One engineer</dd>
+        </div>
+        <div class="plate-wide">
+          <dt>Works</dt>
+          <dd>Remote, or on site</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="work" class="band">
+      <h2>What I build</h2>
+      <div class="work">
+        <article>
+          <h3>Warehouse and supply chain systems</h3>
+          <p>Extensions, integrations, and data fixes for warehouse management systems. Since 2024 I have built and led extension development on enterprise warehouse rollouts, so I know what breaks at go-live and why.</p>
+        </article>
+        <article>
+          <h3>Web applications and APIs</h3>
+          <p>Back ends, front ends, and the cloud setup underneath them, taken from an empty repository to production. I build and run two products of my own this way.</p>
+        </article>
+        <article>
+          <h3>Machine learning and automation</h3>
+          <p>Models and pipelines for forecasting, classification, and repetitive work that should not need a person. I am studying this field in Georgia Tech's master's program.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="products" class="band">
+      <h2>Products running today</h2>
+      <ul class="products">
         <li>
-          <a href="https://illumiscore.com">illumiscore</a>
-          <p class="desc">A product that flashes LIFX Wi-Fi enabled bulbs when your sports team scores.</p>
+          <a href="https://illumiscore.com">Illumiscore</a>
+          <p>Flashes your LIFX smart bulbs the moment your team scores.</p>
         </li>
         <li>
-          <a href="https://online-amp.com">online-amp</a>
-          <p class="desc">A simple online amplifier that allows users to record audio.</p>
+          <a href="https://online-amp.com">Online Amp</a>
+          <p>An amplifier and audio recorder that runs in the browser.</p>
         </li>
-        <li>
-          <a href="https://main.d21hsol1os28ah.amplifyapp.com/">Spectrum Analyzer Tool</a>
-          <p class="desc">A group project for Software Engineering Capstone.</p>
-        </li>
-        <li>
-          <a href="https://thompsonswe.com/SymptomChecker/">SymptomChecker</a>
-          <p class="desc">A group project for Software System Requirements.</p>
-        </li>
-        <li>
-          <a href="https://owlbooks-swe4713.netlify.app/">OwlBooks</a>
-          <p class="desc">A group project for SWE Application Domain.</p>
-        </li>
-        <li>
-          <a href="https://main.d182g3zfmyprwh.amplifyapp.com/">EmployeeManagementSystem</a>
-          <p class="desc">A group project for Cloud Software Development.</p>
-        </li>
-        <li>
-          <a href="https://main.d20rc2w6p4e9vz.amplifyapp.com/">Rest API Assignment</a>
-          <p class="desc">An individual project for Cloud Software Development.</p>
       </ul>
     </section>
 
-    <section id="contact">
-      <h2 class="sectionTitle">Contact</h2>
-      <p>
-        <a href="mailto: joey@thompsonswe.com">Joey@thompsonswe.com</a>
-        <a href="https://github.com/JoeyThompson10" target="_blank">GitHub</a>
-        <a href="http://www.linkedin.com/in/joeythompson10" target="_blank">Linkedin</a>
-      </p>
+    <section id="about" class="band">
+      <h2>Who does the work</h2>
+      <div class="about">
+        <p>I'm Joey Thompson. I hold a B.S. in Software Engineering from Kennesaw State University and I'm working through a master's in computer science at Georgia Tech, specializing in machine learning.</p>
+        <p>Before software I spent four years as a Marine infantryman. That is where I learned to plan carefully, say plainly when something is off, and finish what I start.</p>
+        <p>
+          <a href="https://www.linkedin.com/in/joeythompson10/">LinkedIn</a>
+          <a href="https://github.com/JoeyThompson10">GitHub</a>
+        </p>
+      </div>
+    </section>
+
+    <section id="contact" class="band contact">
+      <h2>Start with an email</h2>
+      <p>Tell me what you need built or fixed, and I will tell you whether I am the right person for it.</p>
+      <a class="button" href="mailto:joey@thompsonswe.com">joey@thompsonswe.com</a>
     </section>
   </main>
 
   <footer>
-    <p>Connect with me on <a href="https://www.linkedin.com/in/joeythompson10/" target="_blank">LinkedIn</a></p>
+    <p>&copy; 2026 Thompson SWE LLC, Atlanta, Georgia</p>
   </footer>
-
-  <script src="script.js"></script>
 </body>
 
 </html>
