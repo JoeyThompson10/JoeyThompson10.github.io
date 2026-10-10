@@ -221,7 +221,7 @@
     <section id="example" class="band band-wide wrap">
       <div class="band-head">
         <h2>An example you can try</h2>
-        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, read the reports, and export the numbers.</p>
+        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, watch the projection move, then read and export any of twelve reports.</p>
       </div>
 
       <section class="plan card" id="plan" aria-labelledby="plan-title" hidden>
@@ -291,32 +291,67 @@
           <div><dt><span class="key-critical" aria-hidden="true"></span>Days out of stock</dt><dd id="st-out">0</dd></div>
         </dl>
 
-        <div class="tabs" role="tablist" aria-label="Reports">
-          <button type="button" role="tab" id="tab-projection" data-report="projection" aria-controls="report" aria-selected="true">Stock projection</button>
-          <button type="button" role="tab" id="tab-demand" data-report="demand" aria-controls="report" aria-selected="false" tabindex="-1">Demand plan</button>
-          <button type="button" role="tab" id="tab-orders" data-report="orders" aria-controls="report" aria-selected="false" tabindex="-1">Suggested orders</button>
-          <button type="button" role="tab" id="tab-customers" data-report="customers" aria-controls="report" aria-selected="false" tabindex="-1">Customer history</button>
-          <button type="button" role="tab" id="tab-season" data-report="season" aria-controls="report" aria-selected="false" tabindex="-1">Seasonal profile</button>
-          <button type="button" role="tab" id="tab-exceptions" data-report="exceptions" aria-controls="report" aria-selected="false" tabindex="-1">Exceptions</button>
-        </div>
-
-        <div class="report" id="report" role="tabpanel" aria-labelledby="tab-projection">
+        <div class="chart-block">
           <div class="report-head">
             <div>
-              <h4 id="report-title">Stock projection</h4>
+              <h4 id="chart-title">Stock projection</h4>
+              <p id="chart-desc">Projected units on hand for the next 52 weeks, against the three levels that steer it. The line falls as stock ships and jumps when an order arrives.</p>
+            </div>
+            <p class="report-actions">
+              <button type="button" class="button button-quiet button-small" id="plan-extract">Daily extract (CSV)</button>
+            </p>
+          </div>
+          <ul class="legend">
+            <li><span class="key k-line k-main" aria-hidden="true"></span>Projected on hand</li>
+            <li><span class="key k-line k-max" aria-hidden="true"></span>Order-up-to level (max)</li>
+            <li><span class="key k-line k-min" aria-hidden="true"></span>Reorder point (min)</li>
+            <li><span class="key k-line k-safety" aria-hidden="true"></span>Safety stock</li>
+            <li><span class="key k-po" aria-hidden="true"></span>Order placed</li>
+            <li><span class="key k-out" aria-hidden="true"></span>Out of stock</li>
+          </ul>
+          <div class="sim-plot" id="plan-plot">
+            <svg id="plan-chart" viewBox="0 0 640 320" role="img" aria-labelledby="chart-title chart-desc" tabindex="0"></svg>
+            <div class="sim-tip" id="plan-tip" aria-hidden="true" hidden></div>
+          </div>
+        </div>
+
+        <fieldset class="report-picker" id="report-picker">
+          <legend>Reports</legend>
+          <div class="pick-group">
+            <span class="pick-label" id="pick-inventory">Inventory</span>
+            <div class="pick-row" role="group" aria-labelledby="pick-inventory">
+              <label><input type="radio" name="pl-report" value="position" checked><span>Inventory position</span></label>
+              <label><input type="radio" name="pl-report" value="projection"><span>Projected inventory</span></label>
+              <label><input type="radio" name="pl-report" value="levels"><span>Key levels</span></label>
+              <label><input type="radio" name="pl-report" value="orders"><span>Suggested orders</span></label>
+              <label><input type="radio" name="pl-report" value="service"><span>Service by month</span></label>
+              <label><input type="radio" name="pl-report" value="exceptions"><span>Exceptions</span></label>
+            </div>
+          </div>
+          <div class="pick-group">
+            <span class="pick-label" id="pick-forecast">Forecast</span>
+            <div class="pick-row" role="group" aria-labelledby="pick-forecast">
+              <label><input type="radio" name="pl-report" value="forecastWeekly"><span>Weekly forecast</span></label>
+              <label><input type="radio" name="pl-report" value="forecastMonthly"><span>Monthly forecast</span></label>
+              <label><input type="radio" name="pl-report" value="accuracy"><span>Forecast against actual</span></label>
+              <label><input type="radio" name="pl-report" value="season"><span>Seasonal profile</span></label>
+              <label><input type="radio" name="pl-report" value="customers"><span>Customer history</span></label>
+              <label><input type="radio" name="pl-report" value="customersWeekly"><span>Customer history by week</span></label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="report" id="report" role="region" aria-labelledby="report-title">
+          <div class="report-head">
+            <div>
+              <h4 id="report-title">Inventory position</h4>
               <p id="report-blurb"></p>
             </div>
             <p class="report-actions">
               <button type="button" class="button button-quiet button-small" id="report-export">Export report (CSV)</button>
-              <button type="button" class="button button-quiet button-small" id="report-extract" hidden>Daily extract (CSV)</button>
             </p>
           </div>
           <p class="report-status" id="report-status" role="status"></p>
-          <ul class="legend" id="report-legend"></ul>
-          <div class="sim-plot" id="report-plot">
-            <svg id="report-chart" viewBox="0 0 640 320" role="img" tabindex="0"></svg>
-            <div class="sim-tip" id="report-tip" aria-hidden="true" hidden></div>
-          </div>
           <div class="table-scroll" id="report-table-wrap" tabindex="0" role="region" aria-label="Report table">
             <table id="report-table"></table>
           </div>

@@ -50,6 +50,10 @@
      order-up-to (max)   = expected demand over lead time + order cycle + safety stock
      When position <= reorder point, order (order-up-to level - position).
      The order arrives one lead time later. Unmet demand is lost.
+
+   Screen
+     One chart, always the stock projection against its key levels.
+     Below it, one report at a time, each a table built from the same plan.
    ------------------------------------------------------------------------ */
 (() => {
   'use strict';
@@ -79,10 +83,11 @@
   ];
 
   const $ = (id) => document.getElementById(id);
-  const svg = $('report-chart');
-  const plot = $('report-plot');
-  const tip = $('report-tip');
+  const svg = $('plan-chart');
+  const plot = $('plan-plot');
+  const tip = $('plan-tip');
   const int = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const one = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const dec = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -90,8 +95,9 @@
   let noise = null;
   let plan = null;
   let report = null;
-  let active = 'projection';
+  let active = 'position';
   let cursor = null;
+  let chart = null;
   let animatePending = !reduceMotion;
 
   /* ---------- Model ---------- */
@@ -194,10 +200,9 @@
     const days = [];
     const orders = [];
     const exceptions = [];
-    let totalOnHand = 0;
-    let outDays = 0;
 
     for (let t = 0; t < DAYS; t += 1) {
+      const opening = onHand;
       let received = 0;
       pipeline = pipeline.filter((po) => {
         if (po.due === t) {
@@ -231,13 +236,8 @@
         position += ordered;
       }
 
-      if (short > 0) {
-        outDays += 1;
-        exceptions.push({ t, type: 'Out of stock', onHand, safety, short });
-      } else if (onHand < safety) {
-        exceptions.push({ t, type: 'Below safety stock', onHand, safety, short: 0 });
-      }
-      totalOnHand += onHand;
+      if (short > 0) exceptions.push({ t, type: 'Out of stock', onHand, safety, short });
+      else if (onHand < safety) exceptions.push({ t, type: 'Below safety stock', onHand, safety, short: 0 });
 
       days.push({
         t,
@@ -250,6 +250,7 @@
         demand,
         sold,
         short,
+        opening,
         received,
         ordered,
         onHand,
@@ -263,28 +264,91 @@
       });
     }
 
+    /* Weekly and monthly roll-ups that the reports read from */
     const weeks = [];
     for (let w = 0; w < WEEKS; w += 1) {
       const slice = days.slice(w * 7, w * 7 + 7);
       const sum = (key) => slice.reduce((total, d) => total + d[key], 0);
+      const last = slice[6];
+      const first = slice[0];
+      const nextDaily = forecast[(w + 1) * 7] + 0;
+      const forecastWeek = sum('forecast');
+      const plannedWeek = sum('planned');
+      const committedWeek = sum('committedShip');
       weeks.push({
         week: w + 1,
-        month: slice[0].month,
+        month: first.month,
+        monthIndex: monthOfDay(w * 7),
         index: idx[w],
-        forecast: sum('forecast'),
-        planned: sum('planned'),
-        committed: sum('committedShip'),
+        baseForecast: Math.round(base * 7),
+        forecast: forecastWeek,
+        planned: plannedWeek,
+        committedShip: committedWeek,
+        plan: forecastWeek + plannedWeek + committedWeek,
         demand: sum('demand'),
+        sold: sum('sold'),
+        short: sum('short'),
         received: sum('received'),
         ordered: sum('ordered'),
-        short: sum('short'),
-        endOnHand: slice[6].onHand,
-        minOnHand: Math.min.apply(null, slice.map((d) => d.onHand)),
+        opening: first.opening,
+        onHand: last.onHand,
+        committed: last.committed,
+        available: last.available,
+        onOrder: last.onOrder,
+        position: last.position,
+        lowest: Math.min.apply(null, slice.map((d) => d.onHand)),
+        average: sum('onHand') / 7,
         outDays: slice.filter((d) => d.short > 0).length,
         lowDays: slice.filter((d) => d.short === 0 && d.onHand < d.safety).length,
+        daysOfSupply: nextDaily > 0 ? last.onHand / nextDaily : 0,
+        forecastPerDay: first.forecast,
+        safety: first.safety,
+        reorder: first.reorder,
+        orderUpTo: first.orderUpTo,
         lastYear: historyTotal[w]
       });
     }
+    weeks.forEach((w) => {
+      w.vsLastYear = w.lastYear ? w.plan / w.lastYear - 1 : 0;
+      w.error = w.demand - w.plan;
+      w.errorPct = w.plan ? w.error / w.plan : 0;
+      w.absErrorPct = Math.abs(w.errorPct);
+      w.leadDemand = w.reorder - w.safety;
+      w.orderSize = w.orderUpTo - w.reorder;
+      w.status = w.outDays > 0 ? 'Out of stock this week' : w.onHand < w.safety ? 'Below safety stock' : w.ordered > 0 ? 'Order placed' : w.onOrder > 0 ? 'Awaiting receipt' : 'OK';
+    });
+
+    const months = MONTHS.map((name, m) => {
+      const slice = weeks.filter((w) => w.monthIndex === m);
+      const sum = (key) => slice.reduce((total, w) => total + w[key], 0);
+      const demand = sum('demand');
+      const average = sum('average') / slice.length;
+      const row = {
+        month: name,
+        weeks: slice.length,
+        index: season.monthly[m],
+        perDay: Math.round(base * season.monthly[m]),
+        forecast: sum('forecast'),
+        planned: sum('planned'),
+        committedShip: sum('committedShip'),
+        plan: sum('plan'),
+        lastYear: sum('lastYear'),
+        demand,
+        sold: sum('sold'),
+        short: sum('short'),
+        outDays: sum('outDays'),
+        average: Math.round(average),
+        fillRate: demand ? sum('sold') / demand : 1,
+        daysOfSupply: demand ? average / (demand / (slice.length * 7)) : 0,
+        turns: average ? (demand / slice.length) * WEEKS / average : 0
+      };
+      row.vsLastYear = row.lastYear ? row.plan / row.lastYear - 1 : 0;
+      return row;
+    });
+
+    const total = (rows, key) => rows.reduce((sum, r) => sum + r[key], 0);
+    const yearDemand = total(weeks, 'demand');
+    const yearAverage = total(days, 'onHand') / DAYS;
 
     return {
       inp,
@@ -293,24 +357,38 @@
       start,
       days,
       weeks,
+      months,
       orders,
       exceptions,
       byCustomer,
       historyTotal,
+      year: {
+        plan: total(weeks, 'plan'),
+        forecast: total(weeks, 'forecast'),
+        demand: yearDemand,
+        sold: total(weeks, 'sold'),
+        short: total(weeks, 'short'),
+        lastYear: total(weeks, 'lastYear'),
+        average: yearAverage,
+        fillRate: yearDemand ? total(weeks, 'sold') / yearDemand : 1,
+        turns: yearAverage ? yearDemand / yearAverage : 0,
+        mape: total(weeks, 'absErrorPct') / WEEKS,
+        bias: total(weeks, 'plan') ? total(weeks, 'error') / total(weeks, 'plan') : 0
+      },
       stats: {
         safety: days[0].safety,
         reorder: days[0].reorder,
         orderUpTo: days[0].orderUpTo,
-        average: Math.round(totalOnHand / DAYS),
+        average: Math.round(yearAverage),
         orders: orders.length,
-        outDays
+        outDays: exceptions.filter((e) => e.short > 0).length
       }
     };
   }
 
-  /* ---------- Drawing helpers ---------- */
+  /* ---------- The chart: stock projection against its key levels ---------- */
 
-  const M = { l: 46, r: 12, t: 16, b: 26 };
+  const M = { l: 46, r: 12, t: 14, b: 26 };
   let W = 640;
   let H = 320;
 
@@ -329,15 +407,14 @@
     return step * pow;
   }
 
-  function compact(n) {
-    return n >= 1000 ? (Math.round(n / 100) / 10).toString() + 'K' : String(n);
-  }
+  const compact = (n) => (n >= 1000 ? (Math.round(n / 100) / 10).toString() + 'K' : String(n));
+  const weekName = (d) => 'Week ' + d.week + ', day ' + d.day + ' (' + d.month + ')';
+  const weekDay = (t) => 'Week ' + (Math.floor(t / 7) + 1) + ', day ' + ((t % 7) + 1);
 
-  /* Clears the chart, sizes it to its container, and draws the grid and the month axis. */
-  function frame(peak, options) {
-    const opt = options || {};
+  function drawChart() {
+    const p = plan;
     W = Math.max(280, Math.round(plot.clientWidth) || 640);
-    H = W < 440 ? 230 : Math.round(Math.min(opt.tall || 340, W * 0.42));
+    H = W < 440 ? 240 : Math.round(Math.min(360, W * 0.4));
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     svg.textContent = '';
 
@@ -345,385 +422,249 @@
     const x1 = W - M.r;
     const y0 = H - M.b;
     const y1 = M.t;
-    const floor = opt.floor || 0;
-    const step = opt.step || niceStep((peak - floor) * 1.05);
-    const top = floor + Math.ceil(((peak - floor) * 1.05) / step) * step;
-    const y = (v) => y0 - ((y0 - y1) * (v - floor)) / (top - floor);
+    let peak = p.start;
+    p.days.forEach((d) => {
+      peak = Math.max(peak, d.orderUpTo, d.opening + d.received);
+    });
+    const step = niceStep(peak * 1.05);
+    const top = Math.ceil((peak * 1.05) / step) * step;
+    const x = (day) => x0 + ((x1 - x0) * day) / DAYS;
+    const y = (units) => y0 - ((y0 - y1) * units) / top;
 
-    for (let v = floor; v <= top + 1e-9; v += step) {
+    for (let v = 0; v <= top + 1e-9; v += step) {
       svg.appendChild(el('line', { class: 'grid', x1: x0, x2: x1, y1: y(v), y2: y(v) }));
-      svg.appendChild(el('text', { class: 'tick', x: x0 - 8, y: y(v) + 4, 'text-anchor': 'end' }, opt.dec ? dec.format(v) : compact(Math.round(v))));
+      svg.appendChild(el('text', { class: 'tick', x: x0 - 8, y: y(v) + 4, 'text-anchor': 'end' }, compact(Math.round(v))));
     }
     const narrow = W < 520;
     for (let m = 0; m < 12; m += 1) {
       if (narrow && m % 2 === 1) continue;
       svg.appendChild(el('text', { class: 'tick', x: x0 + ((x1 - x0) * m) / 12 + 2, y: H - 7 }, MONTHS[m]));
     }
-    return { x0, x1, y0, y1, y, top };
+
+    /* Sawtooth: a receipt lifts the line at the start of the day, sales draw it down. */
+    let path = 'M' + x(0).toFixed(1) + ' ' + y(p.start).toFixed(1);
+    let maxPath = '';
+    let minPath = '';
+    let safetyPath = '';
+    p.days.forEach((d, i) => {
+      const cmd = i ? 'L' : 'M';
+      const px = x(i + 1).toFixed(1);
+      if (d.received > 0) path += 'L' + x(i).toFixed(1) + ' ' + y(d.opening + d.received).toFixed(1);
+      path += 'L' + px + ' ' + y(d.onHand).toFixed(1);
+      maxPath += cmd + px + ' ' + y(d.orderUpTo).toFixed(1);
+      minPath += cmd + px + ' ' + y(d.reorder).toFixed(1);
+      safetyPath += cmd + px + ' ' + y(d.safety).toFixed(1);
+    });
+    const area = el('path', { class: 'area', d: path + 'L' + x1 + ' ' + y0 + 'L' + x0 + ' ' + y0 + 'Z' });
+    svg.appendChild(area);
+    svg.appendChild(el('path', { class: 'level level-max', d: maxPath }));
+    svg.appendChild(el('path', { class: 'level level-min', d: minPath }));
+    svg.appendChild(el('path', { class: 'level level-safety', d: safetyPath }));
+    const line = el('path', { class: 'line', d: path });
+    svg.appendChild(line);
+
+    p.days.forEach((d, i) => {
+      if (d.short > 0) svg.appendChild(el('rect', { class: 'out', x: x(i), y: y0 - 6, width: Math.max(2, x(i + 1) - x(i)), height: 6 }));
+    });
+    p.days.forEach((d, i) => {
+      if (d.ordered > 0) svg.appendChild(el('circle', { class: 'po', cx: x(i + 1), cy: y(d.onHand), r: narrow ? 3 : 4 }));
+    });
+
+    const cross = el('line', { class: 'cross', y1, y2: y0, visibility: 'hidden' });
+    const dot = el('circle', { class: 'cross-dot', r: 5, visibility: 'hidden' });
+    svg.appendChild(cross);
+    svg.appendChild(dot);
+    chart = { x, y, x0, x1, line, area, cross, dot };
   }
 
-  /* A column that is square at the baseline and rounded at the data end. */
-  function column(x, yTop, width, height, cls, round) {
-    if (height <= 0) return null;
-    const r = round ? Math.min(3, width / 2, height) : 0;
-    const d = 'M' + x + ' ' + (yTop + height) + 'V' + (yTop + r) + 'Q' + x + ' ' + yTop + ' ' + (x + r) + ' ' + yTop +
-      'H' + (x + width - r) + 'Q' + (x + width) + ' ' + yTop + ' ' + (x + width) + ' ' + (yTop + r) + 'V' + (yTop + height) + 'Z';
-    return el('path', { class: cls, d });
-  }
+  function showCursor(index) {
+    cursor = Math.min(DAYS - 1, Math.max(0, index));
+    const d = plan.days[cursor];
+    const px = chart.x(cursor + 1);
+    chart.cross.setAttribute('x1', px);
+    chart.cross.setAttribute('x2', px);
+    chart.cross.setAttribute('visibility', 'visible');
+    chart.dot.setAttribute('cx', px);
+    chart.dot.setAttribute('cy', chart.y(d.onHand));
+    chart.dot.setAttribute('visibility', 'visible');
 
-  /* Weekly stacked columns. series = [{ cls, values[52] }] */
-  function drawColumns(f, series) {
-    const band = (f.x1 - f.x0) / WEEKS;
-    const width = Math.max(2, Math.min(22, band - 2));
-    const gap = width >= 5 ? 2 : 1;
-    for (let w = 0; w < WEEKS; w += 1) {
-      const x = f.x0 + band * w + (band - width) / 2;
-      let level = 0;
-      const live = series.filter((s) => s.values[w] > 0);
-      live.forEach((s, i) => {
-        const yBottom = f.y(level);
-        level += s.values[w];
-        const yTop = f.y(level);
-        const height = yBottom - yTop - (i < live.length - 1 ? gap : 0);
-        const node = column(x, yBottom - height, width, height, s.cls, i === live.length - 1 && width >= 6);
-        if (node) svg.appendChild(node);
-      });
+    const events = [];
+    if (d.received > 0) events.push('Received ' + int.format(d.received));
+    if (d.short > 0) events.push('Out of stock, ' + int.format(d.short) + ' short');
+    if (d.ordered > 0) events.push('Ordered ' + int.format(d.ordered));
+
+    tip.textContent = '';
+    const head = document.createElement('strong');
+    head.textContent = weekName(d);
+    tip.appendChild(head);
+    [['On hand', d.onHand], ['Inventory position', d.position], ['Order-up-to level', d.orderUpTo], ['Reorder point', d.reorder], ['Safety stock', d.safety], ['Demand', d.demand]].forEach((entry) => {
+      const row = document.createElement('span');
+      const name = document.createElement('i');
+      name.textContent = entry[0];
+      const value = document.createElement('b');
+      value.textContent = int.format(entry[1]);
+      row.append(name, value);
+      tip.appendChild(row);
+    });
+    if (events.length) {
+      const note = document.createElement('em');
+      note.textContent = events.join('. ');
+      tip.appendChild(note);
     }
-    return {
-      count: WEEKS,
-      locate: (px) => Math.floor((px - f.x0) / band),
-      mark: (i) => ({ x: f.x0 + band * i, width: band })
-    };
+    tip.hidden = false;
+
+    const box = plot.getBoundingClientRect();
+    const at = (px / W) * box.width;
+    const width = tip.offsetWidth;
+    tip.style.left = Math.max(0, at + 14 + width > box.width ? at - 14 - width : at + 14) + 'px';
   }
 
-  function weekLine(f, values, cls) {
-    const band = (f.x1 - f.x0) / WEEKS;
-    const d = values.map((v, w) => (w ? 'L' : 'M') + (f.x0 + band * (w + 0.5)).toFixed(1) + ' ' + f.y(v).toFixed(1)).join('');
-    const node = el('path', { class: cls, d });
-    svg.appendChild(node);
-    return node;
+  function hideCursor() {
+    cursor = null;
+    tip.hidden = true;
+    if (chart) {
+      chart.cross.setAttribute('visibility', 'hidden');
+      chart.dot.setAttribute('visibility', 'hidden');
+    }
   }
 
-  function label(x, y, text, anchor) {
-    svg.appendChild(el('text', { class: 'ref-label', x, y, 'text-anchor': anchor || 'end' }, text));
+  function indexFromPointer(event) {
+    const box = svg.getBoundingClientRect();
+    const px = ((event.clientX - box.left) / box.width) * W;
+    return Math.round(((px - chart.x0) / (chart.x1 - chart.x0)) * DAYS) - 1;
   }
 
-  const weekName = (d) => 'Week ' + d.week + ', day ' + d.day + ' (' + d.month + ')';
+  /* ---------- Reports: every one is a table built from the same plan ---------- */
 
-  /* ---------- Reports ---------- */
+  const col = (key, label, kind) => ({ key, label, kind: kind || 'int' });
+  const pct = (v) => Math.round(v * 100) + '%';
+  const signed = (v) => (v > 0 ? '+' : '') + pct(v);
 
-  const num = (key, labelText) => ({ key, label: labelText, align: 'r' });
-  const txt = (key, labelText) => ({ key, label: labelText, align: 'l' });
+  const DAILY = [col('week', 'Week'), col('day', 'Day'), col('month', 'Month', 'text'), col('forecast', 'Forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed shipped'), col('demand', 'Total demand'), col('sold', 'Shipped'), col('short', 'Short'), col('received', 'Received'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('safety', 'Safety stock'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level'), col('ordered', 'Ordered')];
 
   const REPORTS = {
-    projection: (p) => ({
-      title: 'Stock projection',
-      blurb: 'Units on hand for the next 52 weeks, steered between the reorder point and the order-up-to level. Dots are orders going out. A red bar is a day the shelf ran empty.',
-      legend: [
-        { cls: 'k-line s1', label: 'On hand' },
-        { cls: 'k-line k-solid', label: 'Order-up-to level (max)' },
-        { cls: 'k-line k-dash', label: 'Reorder point (min)' }
-      ],
-      columns: [num('week', 'Week'), txt('month', 'Month'), num('demand', 'Demand'), num('received', 'Received'), num('ordered', 'Ordered'), num('endOnHand', 'On hand, week end'), num('minOnHand', 'Lowest on hand'), num('outDays', 'Days out')],
+    position: (p) => ({
+      title: 'Inventory position',
+      blurb: 'Where the product stands at the end of each week. Inventory position is on hand, plus on order, minus committed. It is the number the planner compares to the reorder point.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level'), col('daysOfSupply', 'Days of supply', 'one'), col('status', 'Status', 'text')],
       rows: p.weeks,
-      extract: {
-        label: 'Daily extract (CSV)',
-        file: 'daily-extract',
-        columns: [num('week', 'Week'), num('day', 'Day'), txt('month', 'Month'), num('forecast', 'Forecast'), num('planned', 'Planned demand'), num('committedShip', 'Committed shipped'), num('demand', 'Total demand'), num('sold', 'Shipped'), num('short', 'Short'), num('received', 'Received'), num('onHand', 'On hand'), num('committed', 'Committed'), num('available', 'Available'), num('onOrder', 'On order'), num('position', 'Inventory position'), num('safety', 'Safety stock'), num('reorder', 'Reorder point'), num('orderUpTo', 'Order-up-to level'), num('ordered', 'Ordered')],
-        rows: p.days
-      },
-      draw() {
-        let peak = p.start;
-        p.days.forEach((d, i) => {
-          peak = Math.max(peak, d.orderUpTo, (i ? p.days[i - 1].onHand : p.start) + d.received);
-        });
-        const f = frame(peak);
-        const x = (day) => f.x0 + ((f.x1 - f.x0) * day) / DAYS;
-
-        if (p.inp.plannedQty > 0) {
-          const from = x((p.inp.plannedWeek - 1) * 7);
-          const to = x(p.inp.plannedWeek * 7);
-          svg.appendChild(el('rect', { class: 'band-mark', x: from, y: f.y1, width: Math.max(3, to - from), height: f.y0 - f.y1 }));
-          const right = from > (f.x0 + f.x1) / 2;
-          label(right ? from - 5 : to + 5, f.y1 + 12, 'Planned demand', right ? 'end' : 'start');
-        }
-
-        let path = 'M' + x(0).toFixed(1) + ' ' + f.y(p.start).toFixed(1);
-        let previous = p.start;
-        let maxPath = '';
-        let minPath = '';
-        p.days.forEach((d, i) => {
-          if (d.received > 0) path += 'L' + x(i).toFixed(1) + ' ' + f.y(previous + d.received).toFixed(1);
-          path += 'L' + x(i + 1).toFixed(1) + ' ' + f.y(d.onHand).toFixed(1);
-          previous = d.onHand;
-          maxPath += (i ? 'L' : 'M') + x(i + 1).toFixed(1) + ' ' + f.y(d.orderUpTo).toFixed(1);
-          minPath += (i ? 'L' : 'M') + x(i + 1).toFixed(1) + ' ' + f.y(d.reorder).toFixed(1);
-        });
-        const area = el('path', { class: 'area', d: path + 'L' + f.x1 + ' ' + f.y0 + 'L' + f.x0 + ' ' + f.y0 + 'Z' });
-        svg.appendChild(area);
-        svg.appendChild(el('path', { class: 'ref ref-solid', d: maxPath }));
-        svg.appendChild(el('path', { class: 'ref', d: minPath }));
-        const line = el('path', { class: 'line s1-stroke', d: path });
-        svg.appendChild(line);
-
-        p.days.forEach((d, i) => {
-          if (d.short > 0) svg.appendChild(el('rect', { class: 'out', x: x(i), y: f.y0 - 6, width: Math.max(2, x(i + 1) - x(i)), height: 6 }));
-        });
-        p.days.forEach((d, i) => {
-          if (d.ordered > 0) svg.appendChild(el('circle', { class: 'po', cx: x(i + 1), cy: f.y(d.onHand), r: W < 520 ? 3 : 4 }));
-        });
-
-        const dot = el('circle', { class: 'cross-dot', r: 5, visibility: 'hidden' });
-        svg.appendChild(dot);
-        report.animate = { line, area };
-
-        return {
-          count: DAYS,
-          locate: (px) => Math.round(((px - f.x0) / (f.x1 - f.x0)) * DAYS) - 1,
-          mark: (i) => {
-            dot.setAttribute('cx', x(i + 1));
-            dot.setAttribute('cy', f.y(p.days[i].onHand));
-            dot.setAttribute('visibility', 'visible');
-            return { x: x(i + 1), width: 0 };
-          },
-          unmark: () => dot.setAttribute('visibility', 'hidden'),
-          tip: (i) => {
-            const d = p.days[i];
-            const events = [];
-            if (d.received > 0) events.push('Received ' + int.format(d.received));
-            if (d.short > 0) events.push('Out of stock, ' + int.format(d.short) + ' short');
-            if (d.ordered > 0) events.push('Ordered ' + int.format(d.ordered));
-            return {
-              title: weekName(d),
-              lines: [['On hand', d.onHand, 'k-line s1'], ['Available', d.available], ['On order', d.onOrder], ['Demand', d.demand], ['Order-up-to level', d.orderUpTo], ['Reorder point', d.reorder]],
-              note: events.join('. ')
-            };
-          }
-        };
-      }
+      footer: 'Average on hand ' + int.format(p.year.average) + ' units. ' + one.format(p.year.turns) + ' inventory turns a year.'
     }),
 
-    demand: (p) => ({
-      title: 'Demand plan',
-      blurb: 'What the planner expects to ship each week: the seasonal forecast, plus planned demand and the committed quantity. The line is what sold in the same week last year.',
-      legend: [
-        { cls: 'k-box s1', label: 'Forecast' },
-        { cls: 'k-box s2', label: 'Planned demand' },
-        { cls: 'k-box s3', label: 'Committed quantity' },
-        { cls: 'k-line k-solid', label: 'Last year' }
-      ],
-      columns: [num('week', 'Week'), txt('month', 'Month'), { key: 'index', label: 'Seasonal index', align: 'r', dec: true }, num('forecast', 'Forecast'), num('planned', 'Planned demand'), num('committed', 'Committed'), num('total', 'Total plan'), num('lastYear', 'Last year')],
-      rows: p.weeks.map((w) => Object.assign({ total: w.forecast + w.planned + w.committed }, w)),
-      draw() {
-        const peak = Math.max.apply(null, p.weeks.map((w) => Math.max(w.forecast + w.planned + w.committed, w.lastYear)));
-        const f = frame(peak);
-        const hit = drawColumns(f, [
-          { cls: 's1', values: p.weeks.map((w) => w.forecast) },
-          { cls: 's2', values: p.weeks.map((w) => w.planned) },
-          { cls: 's3', values: p.weeks.map((w) => w.committed) }
-        ]);
-        weekLine(f, p.historyTotal, 'ref ref-solid ref-strong');
-        hit.tip = (i) => {
-          const w = p.weeks[i];
-          return {
-            title: 'Week ' + w.week + ' (' + w.month + ')',
-            lines: [['Forecast', w.forecast, 'k-box s1'], ['Planned demand', w.planned, 'k-box s2'], ['Committed', w.committed, 'k-box s3'], ['Last year', w.lastYear, 'k-line k-solid']]
-          };
-        };
-        return hit;
-      }
+    projection: (p) => ({
+      title: 'Projected inventory',
+      blurb: 'The chart above, as numbers: what each week opens with, what arrives, what ships, and what is left.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('opening', 'Opening on hand'), col('received', 'Received'), col('demand', 'Demand'), col('sold', 'Shipped'), col('short', 'Short'), col('onHand', 'Closing on hand'), col('lowest', 'Lowest on hand'), col('outDays', 'Days out')],
+      rows: p.weeks,
+      footer: int.format(p.year.sold) + ' of ' + int.format(p.year.demand) + ' units shipped. Fill rate ' + one.format(p.year.fillRate * 100) + '%.'
+    }),
+
+    levels: (p) => ({
+      title: 'Key levels',
+      blurb: 'The three lines on the chart, week by week. They move with the forecast, so they rise ahead of a busy season or a planned-demand week and fall after it.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('forecastPerDay', 'Forecast per day'), col('leadDemand', 'Lead-time demand'), col('safety', 'Safety stock'), col('reorder', 'Reorder point (min)'), col('orderUpTo', 'Order-up-to level (max)'), col('orderSize', 'Order size at the min')],
+      rows: p.weeks,
+      footer: 'Lead time ' + p.inp.lead + ' days. Order cycle ' + p.inp.cycle + ' days.'
     }),
 
     orders: (p) => ({
       title: 'Suggested orders',
       blurb: 'Every purchase order the planner would place this year. Each is sized to bring the inventory position back up to the order-up-to level.',
-      legend: [],
-      columns: [num('no', 'Order'), txt('placedOn', 'Placed'), txt('dueOn', 'Due'), num('qty', 'Quantity'), num('position', 'Position when placed'), num('reorder', 'Reorder point'), num('orderUpTo', 'Order-up-to level')],
-      rows: p.orders.map((o) => Object.assign({
-        placedOn: 'Week ' + (Math.floor(o.placed / 7) + 1) + ', day ' + ((o.placed % 7) + 1),
-        dueOn: o.due < DAYS ? 'Week ' + (Math.floor(o.due / 7) + 1) + ', day ' + ((o.due % 7) + 1) : 'Next year'
-      }, o)),
-      footer: int.format(p.orders.length) + ' orders, ' + int.format(p.orders.reduce((sum, o) => sum + o.qty, 0)) + ' units in total.',
-      draw() {
-        const byWeek = p.weeks.map((w) => w.ordered);
-        const f = frame(Math.max(100, Math.max.apply(null, byWeek)));
-        const hit = drawColumns(f, [{ cls: 's1', values: byWeek }]);
-        hit.tip = (i) => ({
-          title: 'Week ' + (i + 1) + ' (' + p.weeks[i].month + ')',
-          lines: [['Ordered', byWeek[i], 'k-box s1'], ['Received', p.weeks[i].received]]
-        });
-        return hit;
-      }
+      columns: [col('no', 'Order'), col('placedOn', 'Placed', 'text'), col('dueOn', 'Due', 'text'), col('qty', 'Quantity'), col('position', 'Position when placed'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level')],
+      rows: p.orders.map((o) => Object.assign({ placedOn: weekDay(o.placed), dueOn: o.due < DAYS ? weekDay(o.due) : 'Next year' }, o)),
+      empty: 'No orders. Stock never fell to the reorder point.',
+      footer: int.format(p.orders.length) + ' orders, ' + int.format(p.orders.reduce((sum, o) => sum + o.qty, 0)) + ' units in total.'
     }),
 
-    customers: (p) => {
-      const half = WEEKS / 2;
-      const total = p.historyTotal.reduce((a, b) => a + b, 0);
-      return {
-        title: 'Customer history',
-        blurb: 'Last year\'s sales, broken out by who bought. This is the raw material for the forecast: the planner averages it, removes the seasonal shape, and projects it forward.',
-        legend: CUSTOMERS.map((c, i) => ({ cls: 'k-box s' + (i + 1), label: c.name })),
-        columns: [txt('name', 'Customer'), num('units', 'Units last year'), { key: 'share', label: 'Share', align: 'r', pct: true }, num('weekly', 'Average per week'), { key: 'change', label: 'Second half vs first', align: 'r', pct: true, signed: true }],
-        rows: CUSTOMERS.map((c, i) => {
-          const units = p.byCustomer[i].reduce((a, b) => a + b, 0);
-          const first = p.byCustomer[i].slice(0, half).reduce((a, b) => a + b, 0);
-          return { name: c.name, units, share: units / total, weekly: Math.round(units / WEEKS), change: (units - first) / first - 1 };
-        }),
-        footer: 'Forecast base: ' + int.format(Math.round(p.base)) + ' units a day, from ' + int.format(total) + ' units sold last year.',
-        extract: {
-          label: 'Weekly extract (CSV)',
-          file: 'customer-history-weekly',
-          columns: [num('week', 'Week'), txt('month', 'Month')].concat(CUSTOMERS.map((c, i) => num('c' + i, c.name)), [num('total', 'Total')]),
-          rows: p.weeks.map((w, wi) => {
-            const row = { week: w.week, month: w.month, total: p.historyTotal[wi] };
-            CUSTOMERS.forEach((c, i) => { row['c' + i] = p.byCustomer[i][wi]; });
-            return row;
-          })
-        },
-        draw() {
-          const f = frame(Math.max.apply(null, p.historyTotal));
-          const hit = drawColumns(f, CUSTOMERS.map((c, i) => ({ cls: 's' + (i + 1), values: p.byCustomer[i] })));
-          hit.tip = (w) => ({
-            title: 'Week ' + (w + 1) + ' (' + p.weeks[w].month + '), last year',
-            lines: CUSTOMERS.map((c, i) => [c.name, p.byCustomer[i][w], 'k-box s' + (i + 1)]).concat([['Total', p.historyTotal[w]]])
-          });
-          return hit;
-        }
-      };
-    },
-
-    season: (p) => ({
-      title: 'Seasonal profile',
-      blurb: 'The shape of a normal year, as a multiplier on average sales. 1.20 means a week runs 20% above average. The forecast is the base rate times this curve.',
-      legend: [],
-      columns: [txt('month', 'Month'), { key: 'index', label: 'Seasonal index', align: 'r', dec: true }, num('perDay', 'Forecast per day'), num('perMonth', 'Forecast for the month')],
-      rows: MONTHS.map((m, i) => ({ month: m, index: p.season.monthly[i], perDay: Math.round(p.base * p.season.monthly[i]), perMonth: Math.round((p.base * p.season.monthly[i] * DAYS) / 12) })),
-      draw() {
-        const values = p.season.weekly;
-        const high = Math.max(1.25, Math.max.apply(null, values));
-        const low = Math.min(0.75, Math.min.apply(null, values));
-        const floor = Math.floor(low * 4) / 4;
-        const f = frame(high, { floor, step: 0.25, dec: true });
-        svg.appendChild(el('line', { class: 'ref', x1: f.x0, x2: f.x1, y1: f.y(1), y2: f.y(1) }));
-        label(f.x1 - 4, f.y(1) - 6, 'Average, 1.00');
-        weekLine(f, values, 'line s1-stroke');
-        const band = (f.x1 - f.x0) / WEEKS;
-        const dot = el('circle', { class: 'cross-dot', r: 5, visibility: 'hidden' });
-        svg.appendChild(dot);
-        return {
-          count: WEEKS,
-          locate: (px) => Math.floor((px - f.x0) / band),
-          mark: (i) => {
-            dot.setAttribute('cx', f.x0 + band * (i + 0.5));
-            dot.setAttribute('cy', f.y(values[i]));
-            dot.setAttribute('visibility', 'visible');
-            return { x: f.x0 + band * (i + 0.5), width: 0 };
-          },
-          unmark: () => dot.setAttribute('visibility', 'hidden'),
-          tip: (i) => ({
-            title: 'Week ' + (i + 1) + ' (' + p.weeks[i].month + ')',
-            lines: [['Seasonal index', dec.format(values[i]), 'k-line s1'], ['Forecast per day', Math.round(p.base * values[i])]]
-          })
-        };
-      }
+    service: (p) => ({
+      title: 'Service by month',
+      blurb: 'How well the plan served customers and what it cost in stock. Fill rate is units shipped over units asked for. Turns are annualized.',
+      columns: [col('month', 'Month', 'text'), col('demand', 'Demand'), col('sold', 'Shipped'), col('short', 'Short'), col('fillRate', 'Fill rate', 'pct1'), col('outDays', 'Days out of stock'), col('average', 'Average on hand'), col('daysOfSupply', 'Days of supply', 'one'), col('turns', 'Inventory turns', 'one')],
+      rows: p.months,
+      footer: 'Year: fill rate ' + one.format(p.year.fillRate * 100) + '%, ' + int.format(p.year.short) + (p.year.short === 1 ? ' unit short, ' : ' units short, ') + one.format(p.year.turns) + ' turns.'
     }),
 
     exceptions: (p) => ({
       title: 'Exceptions',
       blurb: 'The days that need a person: the shelf ran empty, or stock dipped into the safety stock. A good plan keeps this list short.',
-      legend: [
-        { cls: 'k-box warn', label: 'Below safety stock' },
-        { cls: 'k-box crit', label: 'Out of stock' }
-      ],
-      columns: [txt('when', 'When'), txt('type', 'Exception'), num('onHand', 'On hand'), num('safety', 'Safety stock'), num('short', 'Units short')],
+      columns: [col('when', 'When', 'text'), col('type', 'Exception', 'text'), col('onHand', 'On hand'), col('safety', 'Safety stock'), col('short', 'Units short')],
       rows: p.exceptions.map((e) => Object.assign({ when: weekName(p.days[e.t]) }, e)),
       empty: 'No exceptions. Nothing ran out, and stock never dipped into the safety stock.',
-      footer: p.exceptions.length ? int.format(p.exceptions.length) + ' exception days out of ' + DAYS + '.' : '',
-      draw() {
-        const most = Math.max.apply(null, p.weeks.map((w) => w.lowDays + w.outDays));
-        const f = frame(Math.max(3, most) / 1.05, { step: 1, tall: 240 });
-        const hit = drawColumns(f, [
-          { cls: 'warn', values: p.weeks.map((w) => w.lowDays) },
-          { cls: 'crit', values: p.weeks.map((w) => w.outDays) }
-        ]);
-        hit.tip = (i) => ({
-          title: 'Week ' + (i + 1) + ' (' + p.weeks[i].month + ')',
-          lines: [['Days below safety stock', p.weeks[i].lowDays, 'k-box warn'], ['Days out of stock', p.weeks[i].outDays, 'k-box crit']]
-        });
-        return hit;
-      }
+      footer: p.exceptions.length ? int.format(p.exceptions.length) + ' exception days out of ' + DAYS + '.' : ''
+    }),
+
+    forecastWeekly: (p) => ({
+      title: 'Weekly forecast',
+      blurb: 'What the planner expects to ship each week: the base rate shaped by the seasonal index, plus planned demand and the committed quantity.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('baseForecast', 'Base forecast'), col('index', 'Seasonal index', 'dec'), col('forecast', 'Seasonal forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed'), col('plan', 'Total plan'), col('lastYear', 'Last year'), col('vsLastYear', 'vs last year', 'signed')],
+      rows: p.weeks,
+      footer: 'Plan for the year: ' + int.format(p.year.plan) + ' units, ' + signed(p.year.plan / p.year.lastYear - 1) + ' against last year. Base rate ' + int.format(Math.round(p.base)) + ' units a day.'
+    }),
+
+    forecastMonthly: (p) => ({
+      title: 'Monthly forecast',
+      blurb: 'The same plan rolled up by month, set against what sold in the same month last year. A month here is the weeks that start in it.',
+      columns: [col('month', 'Month', 'text'), col('weeks', 'Weeks'), col('index', 'Seasonal index', 'dec'), col('forecast', 'Seasonal forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed'), col('plan', 'Total plan'), col('lastYear', 'Last year'), col('vsLastYear', 'vs last year', 'signed')],
+      rows: p.months,
+      footer: 'Plan for the year: ' + int.format(p.year.plan) + ' units. Last year: ' + int.format(p.year.lastYear) + ' units.'
+    }),
+
+    accuracy: (p) => ({
+      title: 'Forecast against actual',
+      blurb: 'How the simulated year played out against the plan. Error is actual minus plan, so a positive number means the forecast ran low.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('plan', 'Plan'), col('demand', 'Actual demand'), col('error', 'Error'), col('errorPct', 'Error %', 'signed'), col('absErrorPct', 'Absolute error %', 'pct')],
+      rows: p.weeks,
+      footer: 'Weekly MAPE ' + one.format(p.year.mape * 100) + '%. Bias ' + (p.year.bias > 0 ? '+' : '') + one.format(p.year.bias * 100) + '% over the year.'
+    }),
+
+    season: (p) => {
+      const year = p.season.monthly.reduce((a, b) => a + b, 0);
+      return {
+        title: 'Seasonal profile',
+        blurb: 'The shape of a normal year, as a multiplier on average sales. 1.20 means a month runs 20% above average. The forecast is the base rate times this index.',
+        columns: [col('month', 'Month', 'text'), col('index', 'Seasonal index', 'dec'), col('perDay', 'Forecast per day'), col('forecast', 'Forecast for the month'), col('share', 'Share of the year', 'pct1')],
+        rows: p.months.map((m) => Object.assign({ share: m.index / year }, m)),
+        footer: 'Peak month ' + MONTHS[p.season.monthly.indexOf(Math.max.apply(null, p.season.monthly))] + '. Slowest month ' + MONTHS[p.season.monthly.indexOf(Math.min.apply(null, p.season.monthly))] + '.'
+      };
+    },
+
+    customers: (p) => {
+      const half = WEEKS / 2;
+      const total = p.year.lastYear;
+      return {
+        title: 'Customer history',
+        blurb: 'Last year\'s sales by who bought. This is the raw material for the forecast: the planner totals it, removes the seasonal shape, and projects it forward.',
+        columns: [col('name', 'Customer', 'text'), col('units', 'Units last year'), col('share', 'Share', 'pct'), col('weekly', 'Average per week'), col('peak', 'Biggest week'), col('change', 'Second half vs first', 'signed')],
+        rows: CUSTOMERS.map((c, i) => {
+          const units = p.byCustomer[i].reduce((a, b) => a + b, 0);
+          const first = p.byCustomer[i].slice(0, half).reduce((a, b) => a + b, 0);
+          return { name: c.name, units, share: units / total, weekly: Math.round(units / WEEKS), peak: Math.max.apply(null, p.byCustomer[i]), change: (units - first) / first - 1 };
+        }),
+        footer: int.format(total) + ' units sold last year, which works out to a base rate of ' + int.format(Math.round(p.base)) + ' a day.'
+      };
+    },
+
+    customersWeekly: (p) => ({
+      title: 'Customer history by week',
+      blurb: 'The same history, week by week, one column per customer.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text')].concat(CUSTOMERS.map((c, i) => col('c' + i, c.name)), [col('total', 'Total')]),
+      rows: p.weeks.map((w, wi) => {
+        const row = { week: w.week, month: w.month, total: p.historyTotal[wi] };
+        CUSTOMERS.forEach((c, i) => { row['c' + i] = p.byCustomer[i][wi]; });
+        return row;
+      }),
+      footer: int.format(p.year.lastYear) + ' units across ' + CUSTOMERS.length + ' customers.'
     })
   };
 
-  /* ---------- Rendering ---------- */
-
-  function show(value, col) {
+  function show(value, kind) {
     if (typeof value !== 'number') return value;
-    if (col.pct) return (col.signed && value > 0 ? '+' : '') + Math.round(value * 100) + '%';
-    if (col.dec) return dec.format(value);
+    if (kind === 'pct') return pct(value);
+    if (kind === 'pct1') return one.format(value * 100) + '%';
+    if (kind === 'signed') return signed(value);
+    if (kind === 'dec') return dec.format(value);
+    if (kind === 'one') return one.format(value);
     return int.format(value);
-  }
-
-  function renderTable() {
-    const table = $('report-table');
-    const wrap = $('report-table-wrap');
-    const empty = $('report-empty');
-    table.textContent = '';
-    if (!report.rows.length) {
-      wrap.hidden = true;
-      empty.hidden = false;
-      empty.textContent = report.empty || 'Nothing to show.';
-      return;
-    }
-    wrap.hidden = false;
-    empty.hidden = true;
-    const caption = document.createElement('caption');
-    caption.textContent = report.title;
-    caption.className = 'visually-hidden';
-    table.appendChild(caption);
-    const head = document.createElement('tr');
-    report.columns.forEach((col) => {
-      const th = document.createElement('th');
-      th.scope = 'col';
-      th.textContent = col.label;
-      if (col.align === 'l') th.className = 'left';
-      head.appendChild(th);
-    });
-    const thead = document.createElement('thead');
-    thead.appendChild(head);
-    table.appendChild(thead);
-    const body = document.createElement('tbody');
-    report.rows.forEach((row) => {
-      const tr = document.createElement('tr');
-      report.columns.forEach((col) => {
-        const td = document.createElement('td');
-        td.textContent = show(row[col.key], col);
-        if (col.align === 'l') td.className = 'left';
-        tr.appendChild(td);
-      });
-      body.appendChild(tr);
-    });
-    table.appendChild(body);
-  }
-
-  function renderLegend() {
-    const legend = $('report-legend');
-    legend.textContent = '';
-    legend.hidden = !report.legend.length;
-    report.legend.forEach((item) => {
-      const li = document.createElement('li');
-      const key = document.createElement('span');
-      key.className = 'key ' + item.cls;
-      key.setAttribute('aria-hidden', 'true');
-      li.append(key, item.label);
-      legend.appendChild(li);
-    });
-  }
-
-  function drawChart() {
-    report.hit = report.draw();
-    svg.appendChild(el('rect', { class: 'hoverband', id: 'report-band', visibility: 'hidden', y: M.t, height: H - M.b - M.t }));
-    svg.appendChild(el('line', { class: 'cross', id: 'report-cross', visibility: 'hidden', y1: M.t, y2: H - M.b }));
   }
 
   function renderReport() {
@@ -732,14 +673,43 @@
     $('report-blurb').textContent = report.blurb;
     $('report-footer').textContent = report.footer || '';
     $('report-footer').hidden = !report.footer;
-    const extract = $('report-extract');
-    extract.hidden = !report.extract;
-    if (report.extract) extract.textContent = report.extract.label;
-    svg.setAttribute('aria-label', report.title + '. ' + report.blurb);
-    renderLegend();
-    drawChart();
-    renderTable();
-    hideCursor();
+
+    const table = $('report-table');
+    const wrap = $('report-table-wrap');
+    const empty = $('report-empty');
+    table.textContent = '';
+    wrap.hidden = !report.rows.length;
+    empty.hidden = !!report.rows.length;
+    wrap.setAttribute('aria-label', report.title + ' table');
+    if (!report.rows.length) {
+      empty.textContent = report.empty || 'Nothing to show.';
+      return;
+    }
+
+    const head = document.createElement('tr');
+    report.columns.forEach((c) => {
+      const th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = c.label;
+      if (c.kind === 'text') th.className = 'left';
+      head.appendChild(th);
+    });
+    const thead = document.createElement('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    const body = document.createElement('tbody');
+    report.rows.forEach((row) => {
+      const tr = document.createElement('tr');
+      report.columns.forEach((c) => {
+        const td = document.createElement('td');
+        td.textContent = show(row[c.key], c.kind);
+        if (c.kind === 'text') td.className = 'left';
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+    wrap.scrollTop = 0;
   }
 
   function update() {
@@ -768,75 +738,9 @@
     $('st-out').textContent = int.format(plan.stats.outDays);
 
     const keep = cursor;
+    drawChart();
     renderReport();
     if (keep !== null) showCursor(keep);
-  }
-
-  /* ---------- Hover and keyboard ---------- */
-
-  function showCursor(index) {
-    const hit = report.hit;
-    if (!hit) return;
-    cursor = Math.min(hit.count - 1, Math.max(0, index));
-    const at = hit.mark(cursor);
-    const band = $('report-band');
-    const cross = $('report-cross');
-    if (at.width) {
-      band.setAttribute('x', at.x);
-      band.setAttribute('width', at.width);
-      band.setAttribute('visibility', 'visible');
-    } else {
-      cross.setAttribute('x1', at.x);
-      cross.setAttribute('x2', at.x);
-      cross.setAttribute('visibility', 'visible');
-    }
-
-    const data = hit.tip(cursor);
-    tip.textContent = '';
-    const head = document.createElement('strong');
-    head.textContent = data.title;
-    tip.appendChild(head);
-    data.lines.forEach((entry) => {
-      const row = document.createElement('span');
-      const name = document.createElement('i');
-      if (entry[2]) {
-        const key = document.createElement('span');
-        key.className = 'key ' + entry[2];
-        name.appendChild(key);
-      }
-      name.append(entry[0]);
-      const value = document.createElement('b');
-      value.textContent = typeof entry[1] === 'number' ? int.format(entry[1]) : entry[1];
-      row.append(name, value);
-      tip.appendChild(row);
-    });
-    if (data.note) {
-      const note = document.createElement('em');
-      note.textContent = data.note;
-      tip.appendChild(note);
-    }
-    tip.hidden = false;
-
-    const box = plot.getBoundingClientRect();
-    const px = ((at.x + at.width / 2) / W) * box.width;
-    const width = tip.offsetWidth;
-    const left = px + 14 + width > box.width ? px - 14 - width : px + 14;
-    tip.style.left = Math.max(0, left) + 'px';
-  }
-
-  function hideCursor() {
-    cursor = null;
-    tip.hidden = true;
-    const band = $('report-band');
-    const cross = $('report-cross');
-    if (band) band.setAttribute('visibility', 'hidden');
-    if (cross) cross.setAttribute('visibility', 'hidden');
-    if (report && report.hit && report.hit.unmark) report.hit.unmark();
-  }
-
-  function indexFromPointer(event) {
-    const box = svg.getBoundingClientRect();
-    return report.hit.locate(((event.clientX - box.left) / box.width) * W);
   }
 
   /* ---------- Exports ---------- */
@@ -865,26 +769,13 @@
     $('report-status').textContent = 'Downloaded ' + link.download + ', ' + int.format(rows.length) + ' rows.';
   }
 
+  const fileName = (id) => id.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase());
+
   /* ---------- Wiring ---------- */
 
-  const tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
-
-  function selectTab(id, focus) {
-    active = id;
-    tabs.forEach((tab) => {
-      const on = tab.dataset.report === id;
-      tab.setAttribute('aria-selected', on ? 'true' : 'false');
-      tab.tabIndex = on ? 0 : -1;
-      if (on) {
-        $('report').setAttribute('aria-labelledby', tab.id);
-        if (focus) tab.focus();
-      }
-    });
-    $('report-status').textContent = '';
-    renderReport();
-  }
-
   root.hidden = false;
+  const picked = root.querySelector('input[name="pl-report"]:checked');
+  if (picked && REPORTS[picked.value]) active = picked.value;
   rollNoise();
   update();
 
@@ -896,27 +787,15 @@
     update();
   });
 
-  tabs.forEach((tab, i) => {
-    tab.addEventListener('click', () => selectTab(tab.dataset.report, false));
-    tab.addEventListener('keydown', (event) => {
-      const move = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-      if (move) {
-        event.preventDefault();
-        selectTab(tabs[(i + move + tabs.length) % tabs.length].dataset.report, true);
-      } else if (event.key === 'Home') {
-        event.preventDefault();
-        selectTab(tabs[0].dataset.report, true);
-      } else if (event.key === 'End') {
-        event.preventDefault();
-        selectTab(tabs[tabs.length - 1].dataset.report, true);
-      }
-    });
+  $('report-picker').addEventListener('change', (event) => {
+    if (!REPORTS[event.target.value]) return;
+    active = event.target.value;
+    $('report-status').textContent = '';
+    renderReport();
   });
 
-  $('report-export').addEventListener('click', () => download(active, report.columns, report.rows));
-  $('report-extract').addEventListener('click', () => {
-    if (report.extract) download(report.extract.file, report.extract.columns, report.extract.rows);
-  });
+  $('report-export').addEventListener('click', () => download(fileName(active), report.columns, report.rows));
+  $('plan-extract').addEventListener('click', () => download('daily-extract', DAILY, plan.days));
 
   svg.addEventListener('pointermove', (event) => showCursor(indexFromPointer(event)));
   svg.addEventListener('pointerdown', (event) => showCursor(indexFromPointer(event)));
@@ -925,8 +804,7 @@
   });
   svg.addEventListener('blur', hideCursor);
   svg.addEventListener('keydown', (event) => {
-    const big = Math.max(1, Math.round(report.hit.count / 13));
-    const steps = { ArrowLeft: -1, ArrowRight: 1, PageUp: -big, PageDown: big };
+    const steps = { ArrowLeft: -1, ArrowRight: 1, PageUp: -28, PageDown: 28 };
     if (event.key in steps) {
       event.preventDefault();
       showCursor((cursor === null ? -1 : cursor) + steps[event.key]);
@@ -935,7 +813,7 @@
       showCursor(0);
     } else if (event.key === 'End') {
       event.preventDefault();
-      showCursor(report.hit.count - 1);
+      showCursor(DAYS - 1);
     } else if (event.key === 'Escape') {
       hideCursor();
     }
@@ -957,10 +835,9 @@
     const watcher = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return;
       watcher.disconnect();
-      if (!animatePending || active !== 'projection' || !report.animate) return;
       animatePending = false;
-      const line = report.animate.line;
-      const area = report.animate.area;
+      const line = chart.line;
+      const area = chart.area;
       if (!line.isConnected || !line.getTotalLength) return;
       const length = line.getTotalLength();
       line.style.strokeDasharray = length;

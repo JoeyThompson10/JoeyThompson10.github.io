@@ -57,13 +57,8 @@
   --btn-ink: #f6f7f5;
   --btn-hover: #12242f;
 
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
-  --series: var(--series-1);
+  --series: #2a78d6;
   --critical: #b3261e;
-  --warning: #a86a00;
 
   --plate-a: #d8dddf;
   --plate-b: #c8ced1;
@@ -93,12 +88,8 @@
     --btn-ink: #14212b;
     --btn-hover: #ffd044;
 
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
+    --series: #3987e5;
     --critical: #ff8a80;
-    --warning: #e0a83a;
 
     --plate-a: #46555f;
     --plate-b: #3a4853;
@@ -525,45 +516,97 @@ h1 {
   background: var(--critical);
 }
 
-/* Report tabs: one report on screen at a time */
+/* Report picker: one report on screen at a time */
 
-.tabs {
-  display: flex;
-  gap: 0.25rem 1.5rem;
+.chart-block {
   margin-top: 1.75rem;
-  border-bottom: 1px solid var(--rule);
-  overflow-x: auto;
-  scrollbar-width: thin;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
 }
 
-.tabs button {
-  flex: none;
-  padding: 0.55rem 0 0.5rem;
-  border: 0;
-  border-bottom: 4px solid transparent;
-  background: none;
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: 0.98rem;
+.report-picker {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+.report-picker > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  font-family: var(--display);
   font-weight: 600;
+  font-size: 1.4rem;
+  line-height: 1.15;
+}
+
+.pick-group {
+  clear: both;
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+}
+
+.pick-group + .pick-group {
+  margin-top: 0.6rem;
+}
+
+.pick-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pick-row label {
+  position: relative;
+  display: block;
+}
+
+.pick-row input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
-.tabs button:hover {
-  color: var(--ink);
+.pick-row span {
+  display: block;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 3px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.3;
 }
 
-.tabs button[aria-selected="true"] {
-  color: var(--ink);
-  border-bottom-color: var(--tape);
+.pick-row input:hover + span {
+  border-color: var(--ink);
 }
 
-.tabs button:focus-visible {
-  outline-offset: -3px;
+.pick-row input:checked + span {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.pick-row input:focus-visible + span {
+  outline: 3px solid var(--tape);
+  outline-offset: 2px;
 }
 
 .report {
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .report-head {
@@ -601,7 +644,7 @@ h1 {
 
 .report-status {
   min-height: 1.3rem;
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   font-size: 0.85rem;
   color: var(--ink-soft);
 }
@@ -610,6 +653,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem 1.25rem;
+  margin-top: 0.9rem;
   list-style: none;
   font-size: 0.88rem;
 }
@@ -625,41 +669,48 @@ h1 {
   margin-right: 0.4rem;
 }
 
-.k-box {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 2px;
-}
-
 .k-line {
-  width: 1.1rem;
+  width: 1.4rem;
   height: 0;
   border-top: 2px solid var(--ink-soft);
 }
 
-.k-line.s1 {
-  background: none;
-  border-top-color: var(--series-1);
+.k-main {
+  border-top-color: var(--series);
 }
 
-.k-line.k-dash {
+.k-max {
+  border-top-width: 1.5px;
+}
+
+.k-min {
   border-top-style: dashed;
   border-top-width: 1.5px;
 }
 
-.s1 { fill: var(--series-1); background: var(--series-1); }
-.s2 { fill: var(--series-2); background: var(--series-2); }
-.s3 { fill: var(--series-3); background: var(--series-3); }
-.s4 { fill: var(--series-4); background: var(--series-4); }
-.warn { fill: var(--warning); background: var(--warning); }
-.crit { fill: var(--critical); background: var(--critical); }
+.k-safety {
+  border-top-style: dotted;
+}
+
+.k-po {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.k-out {
+  width: 0.7rem;
+  height: 0.4rem;
+  background: var(--critical);
+}
 
 .sim-plot {
   position: relative;
   margin-top: 0.75rem;
 }
 
-#report-chart {
+#plan-chart {
   display: block;
   width: 100%;
   height: auto;
@@ -668,92 +719,70 @@ h1 {
   font-family: var(--body);
 }
 
-#report-chart:focus-visible {
+#plan-chart:focus-visible {
   outline-offset: 2px;
 }
 
-#report-chart .grid {
+#plan-chart .grid {
   stroke: var(--rule);
   stroke-width: 1;
 }
 
-#report-chart .tick {
+#plan-chart .tick {
   fill: var(--ink-soft);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
-#report-chart .area {
-  fill: var(--series-1);
+#plan-chart .area {
+  fill: var(--series);
   opacity: 0.1;
 }
 
-#report-chart .line {
+#plan-chart .line {
   fill: none;
+  stroke: var(--series);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
-#report-chart .s1-stroke {
-  stroke: var(--series-1);
-}
-
-#report-chart .ref {
+/* The three key levels share one quiet colour and differ by stroke, like the legend */
+#plan-chart .level {
   fill: none;
   stroke: var(--ink-soft);
   stroke-width: 1.25;
-  stroke-dasharray: 5 4;
-}
-
-#report-chart .ref-solid {
-  stroke-dasharray: none;
-}
-
-#report-chart .ref-strong {
-  stroke-width: 2;
   stroke-linejoin: round;
 }
 
-#report-chart .ref-label {
-  fill: var(--ink);
-  font-size: 12.5px;
-  font-weight: 500;
-  paint-order: stroke;
-  stroke: var(--paper);
-  stroke-width: 4px;
-  stroke-linejoin: round;
+#plan-chart .level-min {
+  stroke-dasharray: 6 4;
 }
 
-#report-chart .band-mark {
-  fill: var(--series-2);
-  opacity: 0.16;
+#plan-chart .level-safety {
+  stroke-width: 1.5;
+  stroke-dasharray: 1.5 3.5;
+  stroke-linecap: round;
 }
 
-#report-chart .hoverband {
-  fill: var(--ink);
-  opacity: 0.08;
-  pointer-events: none;
-}
-
-#report-chart .po {
+#plan-chart .po {
   fill: var(--ink);
   stroke: var(--paper);
   stroke-width: 2;
 }
 
-#report-chart .out {
+#plan-chart .out {
   fill: var(--critical);
 }
 
-#report-chart .cross {
+#plan-chart .cross {
   stroke: var(--ink);
   stroke-width: 1;
   pointer-events: none;
 }
 
-#report-chart .cross-dot {
-  fill: var(--series-1);
+#plan-chart .cross-dot {
+  fill: var(--series);
   stroke: var(--paper);
   stroke-width: 2;
   pointer-events: none;
@@ -803,17 +832,9 @@ h1 {
   font-style: normal;
 }
 
-.sim-tip .k-line {
-  border-top-color: currentColor;
-}
-
-.sim-tip .k-line.s1 {
-  border-top-color: var(--series-1);
-}
-
 .table-scroll {
-  max-height: 17rem;
-  margin-top: 1rem;
+  max-height: 24rem;
+  margin-top: 0.5rem;
   overflow: auto;
   border: 1px solid var(--rule);
 }
@@ -1474,6 +1495,11 @@ footer.wrap {
 
   .glossary dl {
     grid-template-columns: 1fr;
+  }
+
+  .pick-group {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
   }
 
   .spec {
