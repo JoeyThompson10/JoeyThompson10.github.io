@@ -218,63 +218,129 @@
       </div>
     </section>
 
-    <section id="example" class="band wrap">
+    <section id="example" class="band band-wide wrap">
       <div class="band-head">
         <h2>An example you can try</h2>
-        <p>This is the kind of tool I build. It answers a question every business that holds stock has to answer: when to reorder.</p>
+        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, read the reports, and export the numbers.</p>
       </div>
 
-      <section class="sim card" id="sim" aria-labelledby="sim-title" hidden>
-        <h3 id="sim-title">When should the next order go out?</h3>
-        <p class="card-sub">One product selling about 100 units a day, reordered two weeks' worth at a time. Raise the service level and the empty-shelf days go away, while the stock you carry goes up.</p>
+      <section class="plan card" id="plan" aria-labelledby="plan-title" hidden>
+        <h3 id="plan-title">What to order, and when</h3>
+        <p class="card-sub">One product, a year ahead. The planner builds a forecast from last year's sales and a seasonal profile, adds the demand you already know about, and orders up to a target whenever stock runs low.</p>
 
-        <form class="sim-controls" id="sim-controls">
-          <label class="field">
-            <span class="field-label">Supplier lead time <output id="out-lead">7 days</output></span>
-            <input type="range" id="in-lead" min="2" max="14" step="1" value="7">
-          </label>
-          <label class="field">
-            <span class="field-label">Day-to-day sales swings <output id="out-cv">40%</output></span>
-            <input type="range" id="in-cv" min="10" max="60" step="5" value="40">
-          </label>
-          <fieldset class="field seg">
-            <legend class="field-label">Service level target</legend>
-            <div class="seg-row">
-              <label><input type="radio" name="svc" value="1.2816" checked><span>90%</span></label>
-              <label><input type="radio" name="svc" value="1.6449"><span>95%</span></label>
-              <label><input type="radio" name="svc" value="2.3263"><span>99%</span></label>
+        <form class="plan-controls" id="plan-controls">
+          <fieldset class="group">
+            <legend>Demand</legend>
+            <div class="group-grid">
+              <label class="field">
+                <span class="field-label">Seasonal profile</span>
+                <select id="pl-profile">
+                  <option value="flat">Flat, no season</option>
+                  <option value="summer">Summer peak</option>
+                  <option value="holiday" selected>Holiday peak</option>
+                  <option value="shoulder">Spring and fall peaks</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field-label">Day-to-day swings <output id="out-cv">30%</output></span>
+                <input type="range" id="pl-cv" min="10" max="60" step="5" value="30">
+              </label>
+              <label class="field">
+                <span class="field-label">Planned demand <output id="out-planned">1,500 units</output></span>
+                <input type="range" id="pl-planned" min="0" max="4000" step="100" value="1500">
+              </label>
+              <label class="field">
+                <span class="field-label">Planned for <output id="out-week">Week 20 (May)</output></span>
+                <input type="range" id="pl-week" min="1" max="52" step="1" value="20">
+              </label>
+              <label class="field">
+                <span class="field-label">Committed quantity <output id="out-committed">300 units</output></span>
+                <input type="range" id="pl-committed" min="0" max="1500" step="50" value="300">
+              </label>
+            </div>
+          </fieldset>
+          <fieldset class="group">
+            <legend>Supply</legend>
+            <div class="group-grid">
+              <label class="field">
+                <span class="field-label">Supplier lead time <output id="out-lead">7 days</output></span>
+                <input type="range" id="pl-lead" min="2" max="21" step="1" value="7">
+              </label>
+              <label class="field">
+                <span class="field-label">Order cycle <output id="out-cycle">21 days</output></span>
+                <input type="range" id="pl-cycle" min="7" max="35" step="1" value="21">
+              </label>
+              <fieldset class="field seg">
+                <legend class="field-label">Service level target</legend>
+                <div class="seg-row">
+                  <label><input type="radio" name="pl-svc" value="1.2816" checked><span>90%</span></label>
+                  <label><input type="radio" name="pl-svc" value="1.6449"><span>95%</span></label>
+                  <label><input type="radio" name="pl-svc" value="2.3263"><span>99%</span></label>
+                </div>
+              </fieldset>
             </div>
           </fieldset>
         </form>
 
-        <div class="sim-plot" id="sim-plot">
-          <svg id="sim-chart" viewBox="0 0 640 320" role="img" aria-labelledby="sim-title sim-desc" tabindex="0"></svg>
-          <div class="sim-tip" id="sim-tip" aria-hidden="true" hidden></div>
-        </div>
-        <p class="sim-key" id="sim-desc">The line is units on hand over 90 days. Dots mark the days an order goes out. A red bar at the bottom marks a day the shelf ran empty.</p>
-
         <dl class="stats" aria-live="polite">
-          <div><dt>Safety stock</dt><dd id="st-ss">0</dd></div>
-          <div><dt>Reorder point</dt><dd id="st-rop">0</dd></div>
+          <div><dt>Safety stock today</dt><dd id="st-ss">0</dd></div>
+          <div><dt>Reorder point today</dt><dd id="st-rop">0</dd></div>
+          <div><dt>Order-up-to level today</dt><dd id="st-outl">0</dd></div>
           <div><dt>Average on hand</dt><dd id="st-avg">0</dd></div>
+          <div><dt>Orders placed</dt><dd id="st-orders">0</dd></div>
           <div><dt><span class="key-critical" aria-hidden="true"></span>Days out of stock</dt><dd id="st-out">0</dd></div>
         </dl>
 
-        <div class="sim-foot">
-          <button type="button" class="button button-quiet button-small" id="sim-roll">Roll new demand</button>
-          <details class="sim-table">
-            <summary>Show the numbers</summary>
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr><th scope="col">Day</th><th scope="col">Demand</th><th scope="col">On hand</th><th scope="col">On order</th><th scope="col">Event</th></tr>
-                </thead>
-                <tbody id="sim-rows"></tbody>
-              </table>
+        <div class="tabs" role="tablist" aria-label="Reports">
+          <button type="button" role="tab" id="tab-projection" data-report="projection" aria-controls="report" aria-selected="true">Stock projection</button>
+          <button type="button" role="tab" id="tab-demand" data-report="demand" aria-controls="report" aria-selected="false" tabindex="-1">Demand plan</button>
+          <button type="button" role="tab" id="tab-orders" data-report="orders" aria-controls="report" aria-selected="false" tabindex="-1">Suggested orders</button>
+          <button type="button" role="tab" id="tab-customers" data-report="customers" aria-controls="report" aria-selected="false" tabindex="-1">Customer history</button>
+          <button type="button" role="tab" id="tab-season" data-report="season" aria-controls="report" aria-selected="false" tabindex="-1">Seasonal profile</button>
+          <button type="button" role="tab" id="tab-exceptions" data-report="exceptions" aria-controls="report" aria-selected="false" tabindex="-1">Exceptions</button>
+        </div>
+
+        <div class="report" id="report" role="tabpanel" aria-labelledby="tab-projection">
+          <div class="report-head">
+            <div>
+              <h4 id="report-title">Stock projection</h4>
+              <p id="report-blurb"></p>
             </div>
+            <p class="report-actions">
+              <button type="button" class="button button-quiet button-small" id="report-export">Export report (CSV)</button>
+              <button type="button" class="button button-quiet button-small" id="report-extract" hidden>Daily extract (CSV)</button>
+            </p>
+          </div>
+          <p class="report-status" id="report-status" role="status"></p>
+          <ul class="legend" id="report-legend"></ul>
+          <div class="sim-plot" id="report-plot">
+            <svg id="report-chart" viewBox="0 0 640 320" role="img" tabindex="0"></svg>
+            <div class="sim-tip" id="report-tip" aria-hidden="true" hidden></div>
+          </div>
+          <div class="table-scroll" id="report-table-wrap" tabindex="0" role="region" aria-label="Report table">
+            <table id="report-table"></table>
+          </div>
+          <p class="report-empty" id="report-empty" hidden></p>
+          <p class="report-footer" id="report-footer" hidden></p>
+        </div>
+
+        <div class="plan-foot">
+          <button type="button" class="button button-quiet button-small" id="plan-roll">Roll a new sales history</button>
+          <details class="glossary">
+            <summary>What the terms mean</summary>
+            <dl>
+              <div><dt>Customer history</dt><dd>Past sales broken out by who bought. It is the raw material for the forecast.</dd></div>
+              <div><dt>Seasonal profile</dt><dd>The shape of a normal year, as a multiplier on average sales.</dd></div>
+              <div><dt>Planned demand</dt><dd>Demand you know is coming that history would not predict, such as a promotion or one large contract order.</dd></div>
+              <div><dt>Committed quantity</dt><dd>Stock on the shelf already promised to open customer orders. Here it ships over the first five days, and nobody else can have it.</dd></div>
+              <div><dt>Inventory position</dt><dd>On hand, plus on order, minus committed. This is the number the planner watches.</dd></div>
+              <div><dt>Safety stock</dt><dd>Extra stock held to cover the gap between the forecast and what actually sells.</dd></div>
+              <div><dt>Reorder point (min)</dt><dd>The level that triggers an order: expected demand during the supplier's lead time, plus safety stock.</dd></div>
+              <div><dt>Order-up-to level (max)</dt><dd>The target an order brings you back up to: expected demand over the lead time and the order cycle, plus safety stock. Also written OUTL, and called the max in a min/max system.</dd></div>
+            </dl>
           </details>
         </div>
-        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own sales history and your suppliers' actual delivery times.</p>
+        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own sales history, your open orders, and your suppliers' actual delivery times.</p>
       </section>
     </section>
 
