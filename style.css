@@ -277,7 +277,7 @@ a:hover {
   padding-bottom: 3.5rem;
 }
 
-.hero:has(.sim[hidden]) {
+.hero:has(.calc[hidden]) {
   grid-template-columns: minmax(0, 46rem);
 }
 
@@ -301,16 +301,17 @@ h1 {
   color: var(--ink-soft);
 }
 
-/* ---------- Replenishment simulation ---------- */
+/* ---------- Cards that hold the two working tools ---------- */
 
-.sim {
+.card {
   padding: 1.5rem;
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: 6px;
 }
 
-.sim h2 {
+.card > h2,
+.card > h3 {
   margin: 0;
   font-family: var(--display);
   font-weight: 600;
@@ -318,12 +319,62 @@ h1 {
   line-height: 1.1;
 }
 
-.sim-sub {
+.card-sub {
+  max-width: 44rem;
   margin-top: 0.4rem;
   font-size: 0.98rem;
   line-height: 1.45;
   color: var(--ink-soft);
 }
+
+.card-note {
+  max-width: 44rem;
+  margin-top: 0.9rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* Cost-of-a-manual-task calculator */
+
+.calc-controls {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+}
+
+.calc-result {
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.calc-label {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.calc-figure {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.calc-figure span {
+  font-size: clamp(3rem, 6vw, 4.25rem);
+  letter-spacing: -0.01em;
+}
+
+.calc-hours {
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.calc-cta {
+  margin-top: 1.1rem;
+}
+
+/* Reorder-point example */
 
 .sim-controls {
   display: grid;
@@ -603,13 +654,6 @@ h1 {
   text-align: left;
 }
 
-.sim-note {
-  margin-top: 0.9rem;
-  font-size: 0.88rem;
-  line-height: 1.45;
-  color: var(--ink-soft);
-}
-
 /* ---------- Facts strip ---------- */
 
 .facts-strip {
@@ -672,17 +716,20 @@ h3 {
   line-height: 1.15;
 }
 
-h3 a {
-  color: inherit;
+h4 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 /* Services */
 
 .rows > article {
   display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
-  gap: 0.5rem 2.5rem;
-  padding-block: 1.5rem;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 0.75rem 2.5rem;
+  padding-block: 2rem;
   border-top: 1px solid var(--rule);
 }
 
@@ -695,10 +742,44 @@ h3 a {
   max-width: var(--measure);
 }
 
-.tools {
-  margin-top: 0.6rem;
-  font-size: 0.95rem;
+.items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2.5rem;
+}
+
+.items p {
+  margin-top: 0.3rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+/* Who I help */
+
+.who {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem 2.5rem;
+}
+
+.who p {
+  margin-top: 0.5rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.aside {
+  max-width: var(--measure);
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
   color: var(--ink-soft);
+}
+
+/* Example band: the tool sits in the content column */
+
+#example .sim {
+  min-width: 0;
 }
 
 /* Experience */
@@ -764,12 +845,15 @@ h3 a {
 
 .ways {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2rem 3rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem 2.5rem;
+  margin-top: 1.1rem;
 }
 
 .ways p {
-  margin-top: 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
 }
 
 .sub {
@@ -782,7 +866,6 @@ h3 a {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.5rem 2rem;
-  margin-top: 1.25rem;
   list-style: none;
   counter-reset: step;
 }
@@ -1097,6 +1180,8 @@ footer.wrap {
   .case,
   .about,
   .ways,
+  .who,
+  .items,
   .sheet-grid {
     grid-template-columns: 1fr;
   }
@@ -1105,7 +1190,7 @@ footer.wrap {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sim {
+  .card {
     padding: 1.1rem;
   }
 
@@ -1189,7 +1274,7 @@ footer.wrap {
   .top nav,
   .skip,
   .sheet-actions,
-  .sim,
+  .card,
   footer {
     display: none !important;
   }
