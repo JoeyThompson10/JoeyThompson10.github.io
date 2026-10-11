@@ -4,14 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thompson SWE LLC | Software, automation, and IT help for small businesses in Atlanta</title>
-  <meta name="description" content="Thompson SWE LLC is a veteran-owned, one-engineer software firm in Atlanta. Custom tools, system integrations, AI automation, reporting, websites, and IT help for small businesses. Free first call, fixed price in writing.">
+  <title>Thompson SWE LLC | Custom software and automation for small businesses in Atlanta</title>
+  <meta name="description" content="Thompson SWE LLC is a veteran-owned, one-engineer software firm in Atlanta. Custom tools, system integrations, AI automation, reporting, and websites for small businesses. Free first call, fixed price in writing.">
   <link rel="canonical" href="https://thompsonswe.com/">
   <meta name="theme-color" content="#e9ebe8" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#131f28" media="(prefers-color-scheme: dark)">
   <meta property="og:site_name" content="Thompson SWE LLC">
-  <meta property="og:title" content="Thompson SWE LLC | Software, automation, and IT help for small businesses">
-  <meta property="og:description" content="Custom tools, system integrations, AI automation, reporting, and IT help from a veteran-owned, one-engineer firm in Atlanta. Free first call, fixed price in writing.">
+  <meta property="og:title" content="Thompson SWE LLC | Custom software and automation for small businesses">
+  <meta property="og:description" content="Custom tools, system integrations, AI automation, and reporting from a veteran-owned, one-engineer firm in Atlanta. Free first call, fixed price in writing.">
   <meta property="og:url" content="https://thompsonswe.com/">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://thompsonswe.com/img/og.png">
@@ -32,7 +32,7 @@
     "url": "https://thompsonswe.com/",
     "image": "https://thompsonswe.com/img/og.png",
     "email": "joey@thompsonswe.com",
-    "description": "Veteran-owned software engineering firm serving small businesses. Custom tools and web apps, system integrations, AI automation, reporting, websites, mobile apps, and IT help.",
+    "description": "Veteran-owned software engineering firm serving small businesses. Custom tools and web apps, system integrations, AI automation, reporting, and websites.",
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Atlanta",
@@ -55,8 +55,7 @@
       "Business process automation",
       "Artificial intelligence automation",
       "Data pipelines and reporting",
-      "Machine learning",
-      "IT support"
+      "Machine learning"
     ]
   }
   </script>
@@ -80,7 +79,7 @@
   <main id="main">
     <section class="hero wrap">
       <div class="hero-copy">
-        <h1>Software, automation, and IT help for small businesses.</h1>
+        <h1>Custom software and automation for small businesses.</h1>
         <p class="lede">Thompson SWE is a veteran-owned software firm in Atlanta with one engineer, Joey Thompson. I build the tools that replace spreadsheets and double entry, connect the software you already pay for, and keep it all running.</p>
         <p class="actions">
           <a class="button" href="mailto:joey@thompsonswe.com?subject=Project%20inquiry">Email Joey</a>
@@ -127,7 +126,7 @@
     <section id="services" class="band wrap">
       <div class="band-head">
         <h2>What I can do for your business</h2>
-        <p>If you are not sure which of these you need, that is what the free call is for.</p>
+        <p>Most jobs come down to one of three things: build a tool, connect two systems, or get a report out without anyone building it by hand. If you are not sure which you need, that is what the free call is for.</p>
       </div>
       <div class="rows">
         <article>
@@ -140,10 +139,6 @@
             <div>
               <h4>Websites</h4>
               <p>A clear, fast site that says what you do and how to reach you, on your own domain.</p>
-            </div>
-            <div>
-              <h4>Mobile apps</h4>
-              <p>iPhone and Android apps for your customers or for your crew in the field.</p>
             </div>
             <div>
               <h4>Replacing old systems</h4>
@@ -177,10 +172,6 @@
         <article>
           <h3>Keep it running</h3>
           <div class="items">
-            <div>
-              <h4>IT setup and troubleshooting</h4>
-              <p>Accounts, devices, networks, and software set up properly, and fixed when they break.</p>
-            </div>
             <div>
               <h4>Ongoing support</h4>
               <p>A monthly arrangement that keeps what I built running and changes it as your business changes.</p>
@@ -221,233 +212,78 @@
     <section id="example" class="band band-wide wrap">
       <div class="band-head">
         <h2>An example you can try</h2>
-        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, watch the cost and the projection move, then read and export any of sixteen reports.</p>
+        <p>This is the kind of tool I build. A sale at the register lowers the shelf count, and a low shelf count puts the product on an order for the right supplier. Nobody counts stock or types an order.</p>
       </div>
 
-      <section class="plan card" id="plan" aria-labelledby="plan-title" hidden>
-        <h3 id="plan-title">What to order, and when</h3>
-        <p class="card-sub">One product, a year ahead. Hold too little and you lose sales. Hold too much and you pay to carry it, and some of it may expire. The planner forecasts demand, orders up to a target when stock runs low, and prices out the result.</p>
+      <section class="flow card" id="flow" aria-labelledby="flow-title" hidden>
+        <h3 id="flow-title">From the register to the supplier order</h3>
+        <p class="card-sub">A parts counter with eight products and three suppliers. Run a few days and send the orders, or stop sending them and watch what runs out.</p>
 
-        <form class="plan-controls" id="plan-controls">
-          <fieldset class="group">
-            <legend>Demand</legend>
-            <div class="group-grid">
-              <label class="field">
-                <span class="field-label">Seasonal profile</span>
-                <select id="pl-profile">
-                  <option value="flat">Flat, no season</option>
-                  <option value="summer">Summer peak</option>
-                  <option value="holiday" selected>Holiday peak</option>
-                  <option value="shoulder">Spring and fall peaks</option>
-                </select>
-              </label>
-              <label class="field">
-                <span class="field-label">Day-to-day swings <output id="out-cv">40%</output></span>
-                <input type="range" id="pl-cv" min="10" max="60" step="5" value="40">
-              </label>
-              <label class="field">
-                <span class="field-label">Planned demand <output id="out-planned">1,500 units</output></span>
-                <input type="range" id="pl-planned" min="0" max="4000" step="100" value="1500">
-              </label>
-              <label class="field">
-                <span class="field-label">Planned for <output id="out-week">Week 20 (May)</output></span>
-                <input type="range" id="pl-week" min="1" max="52" step="1" value="20">
-              </label>
-              <label class="field">
-                <span class="field-label">Committed quantity <output id="out-committed">300 units</output></span>
-                <input type="range" id="pl-committed" min="0" max="1500" step="50" value="300">
-              </label>
+        <form class="flow-controls" id="flow-controls">
+          <fieldset class="field seg">
+            <legend class="field-label">How busy the shop is</legend>
+            <div class="seg-row">
+              <label><input type="radio" name="fl-busy" value="quiet"><span>Quiet</span></label>
+              <label><input type="radio" name="fl-busy" value="normal" checked><span>Normal</span></label>
+              <label><input type="radio" name="fl-busy" value="busy"><span>Busy</span></label>
             </div>
           </fieldset>
-          <fieldset class="group">
-            <legend>Supply</legend>
-            <div class="group-grid">
-              <label class="field">
-                <span class="field-label">Supplier lead time <output id="out-lead">7 days</output></span>
-                <input type="range" id="pl-lead" min="2" max="21" step="1" value="7">
-              </label>
-              <label class="field">
-                <span class="field-label">Order cycle <output id="out-cycle">21 days</output></span>
-                <input type="range" id="pl-cycle" min="7" max="35" step="1" value="21">
-              </label>
-              <fieldset class="field seg">
-                <legend class="field-label">Service level target</legend>
-                <div class="seg-row">
-                  <label><input type="radio" name="pl-svc" value="1.2816" checked><span>90%</span></label>
-                  <label><input type="radio" name="pl-svc" value="1.6449"><span>95%</span></label>
-                  <label><input type="radio" name="pl-svc" value="2.3263"><span>99%</span></label>
-                </div>
-              </fieldset>
+          <fieldset class="field seg">
+            <legend class="field-label">Who sends the orders</legend>
+            <div class="seg-row seg-two">
+              <label><input type="radio" name="fl-mode" value="manual" checked><span>You</span></label>
+              <label><input type="radio" name="fl-mode" value="auto"><span>The software</span></label>
             </div>
           </fieldset>
-          <fieldset class="group">
-            <legend>Cost</legend>
-            <div class="group-grid">
-              <label class="field">
-                <span class="field-label">Unit cost <output id="out-unit">$12</output></span>
-                <input type="range" id="pl-unit" min="1" max="100" step="1" value="12">
-              </label>
-              <label class="field">
-                <span class="field-label">Carrying cost <output id="out-carry">25% a year</output></span>
-                <input type="range" id="pl-carry" min="5" max="60" step="1" value="25">
-              </label>
-              <label class="field">
-                <span class="field-label">Cost to place an order <output id="out-ordercost">$60</output></span>
-                <input type="range" id="pl-ordercost" min="0" max="300" step="10" value="60">
-              </label>
-              <label class="field">
-                <span class="field-label">Profit lost per unit short <output id="out-margin">$8</output></span>
-                <input type="range" id="pl-margin" min="0" max="50" step="1" value="8">
-              </label>
-              <label class="field">
-                <span class="field-label">Shelf life</span>
-                <select id="pl-shelf">
-                  <option value="0">Does not expire</option>
-                  <option value="14">14 days</option>
-                  <option value="21">21 days</option>
-                  <option value="30" selected>30 days</option>
-                  <option value="45">45 days</option>
-                  <option value="60">60 days</option>
-                  <option value="90">90 days</option>
-                </select>
-              </label>
-            </div>
-          </fieldset>
+          <p class="flow-buttons">
+            <button type="button" class="button button-small" id="flow-day">Run a day</button>
+            <button type="button" class="button button-quiet button-small" id="flow-week">Run a week</button>
+            <button type="button" class="button button-quiet button-small" id="flow-reset">Start over</button>
+          </p>
         </form>
 
-        <div class="balance" aria-live="polite">
-          <div class="balance-total">
-            <p class="balance-label">What this plan costs, for the year</p>
-            <p class="balance-figure" id="bal-total">$0</p>
-          </div>
-          <div class="balance-split">
-            <div class="balance-bar" aria-hidden="true">
-              <span class="b1" id="bal-carrying-bar"></span>
-              <span class="b2" id="bal-ordering-bar"></span>
-              <span class="b3" id="bal-lost-bar"></span>
-              <span class="b4" id="bal-expired-bar"></span>
-            </div>
-            <dl class="balance-parts">
-              <div><dt><span class="key k-box b1" aria-hidden="true"></span>Carrying cost</dt><dd id="bal-carrying">$0</dd></div>
-              <div><dt><span class="key k-box b2" aria-hidden="true"></span>Ordering cost</dt><dd id="bal-ordering">$0</dd></div>
-              <div><dt><span class="key k-box b3" aria-hidden="true"></span>Lost sales</dt><dd id="bal-lost">$0</dd></div>
-              <div><dt><span class="key k-box b4" aria-hidden="true"></span>Expired stock</dt><dd id="bal-expired">$0</dd></div>
-            </dl>
-          </div>
+        <p class="flow-status" id="flow-status" role="status"></p>
+
+        <div class="flow-steps">
+          <section class="flow-step" aria-labelledby="flow-h1">
+            <h4 id="flow-h1"><span class="flow-n" aria-hidden="true">1</span>The register rings up sales</h4>
+            <p class="flow-sub" id="flow-sales-sub"></p>
+            <ul class="flow-list" id="flow-sales"></ul>
+          </section>
+
+          <section class="flow-step" aria-labelledby="flow-h2">
+            <h4 id="flow-h2"><span class="flow-n" aria-hidden="true">2</span>The shelf count updates itself</h4>
+            <p class="flow-sub">The mark on each bar is the level that triggers an order.</p>
+            <table class="flow-table">
+              <thead>
+                <tr><th scope="col" class="left">Product</th><th scope="col" class="left">On the shelf</th><th scope="col" class="flow-at">Reorder at</th><th scope="col" class="left">Status</th></tr>
+              </thead>
+              <tbody id="flow-shelf"></tbody>
+            </table>
+          </section>
+
+          <section class="flow-step" aria-labelledby="flow-h3">
+            <h4 id="flow-h3"><span class="flow-n" aria-hidden="true">3</span>The order is written for you</h4>
+            <p class="flow-sub" id="flow-orders-sub"></p>
+            <div id="flow-orders"></div>
+          </section>
         </div>
 
-        <dl class="stats" aria-live="polite">
-          <div><dt>Fill rate</dt><dd id="st-fill">0%</dd></div>
-          <div><dt>Average on hand</dt><dd id="st-avg">0</dd></div>
-          <div><dt>Orders placed</dt><dd id="st-orders">0</dd></div>
-          <div><dt><span class="key-critical" aria-hidden="true"></span>Days out of stock</dt><dd id="st-out">0</dd></div>
+        <dl class="stats">
+          <div><dt>Day</dt><dd id="fl-day">0</dd></div>
+          <div><dt>Items sold</dt><dd id="fl-sold">0</dd></div>
+          <div><dt>Orders sent</dt><dd id="fl-sent">0</dd></div>
+          <div><dt>Times a customer was turned away</dt><dd id="fl-out">0</dd></div>
         </dl>
 
-        <div class="chart-block">
-          <div class="report-head">
-            <div>
-              <h4 id="chart-title">Stock projection</h4>
-              <p id="chart-desc">Projected units on hand for the next 52 weeks, against the three levels that steer it. The line falls as stock ships and jumps when an order arrives.</p>
-            </div>
-            <p class="report-actions">
-              <button type="button" class="button button-quiet button-small" id="plan-extract">Daily extract (CSV)</button>
-            </p>
-          </div>
-          <ul class="legend">
-            <li><span class="key k-line k-main" aria-hidden="true"></span>Projected on hand</li>
-            <li><span class="key k-line k-max" aria-hidden="true"></span>Order-up-to level (max)</li>
-            <li><span class="key k-line k-min" aria-hidden="true"></span>Reorder point (min)</li>
-            <li><span class="key k-line k-safety" aria-hidden="true"></span>Safety stock</li>
-            <li><span class="key k-po" aria-hidden="true"></span>Order placed</li>
-            <li id="key-expired"><span class="key k-exp" aria-hidden="true"></span>Stock expired</li>
-            <li><span class="key k-out" aria-hidden="true"></span>Out of stock</li>
-          </ul>
-          <div class="sim-plot" id="plan-plot">
-            <svg id="plan-chart" viewBox="0 0 640 320" role="img" aria-labelledby="chart-title chart-desc" tabindex="0"></svg>
-            <div class="sim-tip" id="plan-tip" aria-hidden="true" hidden></div>
-          </div>
-        </div>
-
-        <fieldset class="report-picker" id="report-picker">
-          <legend>Reports</legend>
-          <div class="pick-group">
-            <span class="pick-label" id="pick-cost">Cost</span>
-            <div class="pick-row" role="group" aria-labelledby="pick-cost">
-              <label><input type="radio" name="pl-report" value="serviceTradeoff" checked><span>Service level trade-off</span></label>
-              <label><input type="radio" name="pl-report" value="cycleTradeoff"><span>Order cycle trade-off</span></label>
-              <label><input type="radio" name="pl-report" value="costMonthly"><span>Cost by month</span></label>
-              <label><input type="radio" name="pl-report" value="lots"><span>Lots and expiry</span></label>
-            </div>
-          </div>
-          <div class="pick-group">
-            <span class="pick-label" id="pick-inventory">Inventory</span>
-            <div class="pick-row" role="group" aria-labelledby="pick-inventory">
-              <label><input type="radio" name="pl-report" value="position"><span>Inventory position</span></label>
-              <label><input type="radio" name="pl-report" value="projection"><span>Projected inventory</span></label>
-              <label><input type="radio" name="pl-report" value="levels"><span>Key levels</span></label>
-              <label><input type="radio" name="pl-report" value="orders"><span>Suggested orders</span></label>
-              <label><input type="radio" name="pl-report" value="service"><span>Service by month</span></label>
-              <label><input type="radio" name="pl-report" value="exceptions"><span>Exceptions</span></label>
-            </div>
-          </div>
-          <div class="pick-group">
-            <span class="pick-label" id="pick-forecast">Forecast</span>
-            <div class="pick-row" role="group" aria-labelledby="pick-forecast">
-              <label><input type="radio" name="pl-report" value="forecastWeekly"><span>Weekly forecast</span></label>
-              <label><input type="radio" name="pl-report" value="forecastMonthly"><span>Monthly forecast</span></label>
-              <label><input type="radio" name="pl-report" value="accuracy"><span>Forecast against actual</span></label>
-              <label><input type="radio" name="pl-report" value="season"><span>Seasonal profile</span></label>
-              <label><input type="radio" name="pl-report" value="customers"><span>Customer history</span></label>
-              <label><input type="radio" name="pl-report" value="customersWeekly"><span>Customer history by week</span></label>
-            </div>
-          </div>
-        </fieldset>
-
-        <div class="report" id="report" role="region" aria-labelledby="report-title">
-          <div class="report-head">
-            <div>
-              <h4 id="report-title">Service level trade-off</h4>
-              <p id="report-blurb"></p>
-            </div>
-            <p class="report-actions">
-              <button type="button" class="button button-quiet button-small" id="report-export">Export report (CSV)</button>
-            </p>
-          </div>
-          <p class="report-status" id="report-status" role="status"></p>
-          <div class="table-scroll" id="report-table-wrap" tabindex="0" role="region" aria-label="Report table">
-            <table id="report-table"></table>
-          </div>
-          <p class="report-empty" id="report-empty" hidden></p>
-          <p class="report-footer" id="report-footer" hidden></p>
-        </div>
-
-        <div class="plan-foot">
-          <button type="button" class="button button-quiet button-small" id="plan-roll">Roll a new sales history</button>
-          <details class="glossary">
-            <summary>What the terms mean</summary>
-            <dl>
-              <div><dt>Customer history</dt><dd>Past sales broken out by who bought. It is the raw material for the forecast.</dd></div>
-              <div><dt>Seasonal profile</dt><dd>The shape of a normal year, as a multiplier on average sales.</dd></div>
-              <div><dt>Planned demand</dt><dd>Demand you know is coming that history would not predict, such as a promotion or one large contract order.</dd></div>
-              <div><dt>Committed quantity</dt><dd>Stock on the shelf already promised to open customer orders. Here it ships over the first five days, and nobody else can have it.</dd></div>
-              <div><dt>Inventory position</dt><dd>On hand, plus on order, minus committed. This is the number the planner watches.</dd></div>
-              <div><dt>Carrying cost</dt><dd>What it costs to hold stock for a year, as a share of its value: the money tied up, the space, insurance, and shrinkage.</dd></div>
-              <div><dt>Shelf life</dt><dd>How long a unit can sit before it has to be written off. Stock ships oldest first, and the planner will not order more than it expects to sell with a tenth of the shelf life to spare.</dd></div>
-              <div><dt>Fill rate</dt><dd>Units shipped as a share of units customers asked for.</dd></div>
-              <div><dt>Safety stock</dt><dd>Extra stock held to cover the gap between the forecast and what actually sells.</dd></div>
-              <div><dt>Reorder point (min)</dt><dd>The level that triggers an order: expected demand during the supplier's lead time, plus safety stock.</dd></div>
-              <div><dt>Order-up-to level (max)</dt><dd>The target an order brings you back up to: expected demand over the lead time and the order cycle, plus safety stock. Also written OUTL, and called the max in a min/max system.</dd></div>
-            </dl>
-          </details>
-        </div>
-        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own sales history, open orders, costs, and supplier delivery times.</p>
+        <p class="card-note">A made-up shop with made-up sales. A real one reads the sales from your own register and sends orders the way your suppliers take them: email, a spreadsheet, or their ordering site.</p>
       </section>
     </section>
 
     <section id="experience" class="band wrap">
       <div class="band-head">
         <h2>Where I learned it</h2>
-        <p>Before small businesses, I built software for some very large ones. These projects were delivered on a software vendor's implementation team, not under the Thompson SWE name. Clients are described, not named.</p>
+        <p>My experience comes from very large companies. The problems are the same ones a small business has, with more zeros. These projects were delivered on a software vendor's implementation team, not under the Thompson SWE name. Clients are described, not named.</p>
       </div>
       <div class="cases">
         <article class="case">
@@ -455,6 +291,7 @@
             <h3>A 24-part software rollout for a national pharmaceutical distributor</h3>
             <p>I was the technical lead for the custom-built part of a new purchasing and inventory planning system, delivered in three phases. I designed 17 of the 24 pieces and built 6 of them myself, then supported them once they were live.</p>
             <p>I was also responsible for every connection to the client's other systems: sales, inventory, and product data coming in, and purchase orders going out.</p>
+            <p class="case-so"><strong>At your size:</strong> one person who can plan the tool, build it, connect it to what you already use, and still be there after it goes live.</p>
           </div>
           <dl class="spec">
             <div><dt>Role</dt><dd>Technical lead</dd></div>
@@ -468,6 +305,7 @@
             <h3>Purchase orders filled in automatically across 80,000 products</h3>
             <p>A service that adds the right product details to every purchase order on its way out, in the background, so the people placing orders never wait on it.</p>
             <p>The same client needed federally controlled products placed on their own purchase orders to meet DEA rules. I built that and tested it end to end before it went live.</p>
+            <p class="case-so"><strong>At your size:</strong> orders that fill themselves in, and rules that keep the wrong item off the wrong order.</p>
           </div>
           <dl class="spec">
             <div><dt>Products covered</dt><dd>About 80,000</dd></div>
@@ -479,6 +317,7 @@
           <div>
             <h3>Moving companies off old systems without losing data</h3>
             <p>A tool that pulls data out of a legacy database, reshapes it, and loads it into the new system in batches, later set up to run on a schedule. Alongside it, a tool that compares millions of rows between old and new so a switchover can be checked instead of trusted.</p>
+            <p class="case-so"><strong>At your size:</strong> moving off the old program with proof that every customer, part, and invoice made it across.</p>
           </div>
           <dl class="spec">
             <div><dt>Used on</dt><dd>Multiple client rollouts</dd></div>
@@ -509,11 +348,11 @@
           </article>
           <article>
             <h4>Monthly support</h4>
-            <p>A set monthly amount for upkeep, small changes, and IT help.</p>
+            <p>A set monthly amount for upkeep and small changes.</p>
           </article>
           <article>
             <h4>By the hour</h4>
-            <p>For consulting, troubleshooting, and work too small to quote.</p>
+            <p>For consulting and work too small to quote.</p>
           </article>
         </div>
 
