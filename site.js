@@ -51,6 +51,17 @@
      When position <= reorder point, order (order-up-to level - position).
      The order arrives one lead time later. Unmet demand is lost.
 
+   What the plan is balancing
+     carrying cost  = units on hand x unit cost x annual rate / 365, every day
+     ordering cost  = a fixed cost for each order placed
+     lost sales     = units short x profit per unit
+     expired stock  = units past shelf life x unit cost
+     Stock is held in lots and shipped oldest first. A lot that reaches its
+     shelf life is written off. The planner will not order more than it
+     expects to sell with a tenth of the shelf life to spare: the order cycle
+     is capped at 90% of the shelf life, less the days the safety stock covers.
+     Sales still come in under forecast some weeks, and that is what expires.
+
    Screen
      One chart, always the stock projection against its key levels.
      Below it, one report at a time, each a table built from the same plan.
@@ -65,6 +76,8 @@
   const WEEKS = 52;
   const DAYS = WEEKS * 7;
   const SHIP_DAYS = 5;
+  /* a lot should be sold with a tenth of its shelf life to spare */
+  const SELL_THROUGH = 0.9;
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   const PROFILES = {
@@ -185,28 +198,51 @@
     const ahead = (prefix, t, n) => prefix[t + n + 1] - prefix[t + 1];
     const safetyAt = (t) => inp.z * inp.cv * Math.sqrt(ahead(sumVariance, t, inp.lead));
     const reorderAt = (t) => ahead(sumExpected, t, inp.lead) + safetyAt(t);
-    const orderUpToAt = (t) => ahead(sumExpected, t, inp.lead + inp.cycle) + safetyAt(t);
+    /* Days of demand one order may cover: the order cycle, capped so the lot can sell through before it expires */
+    const coverAt = (t) => {
+      if (!inp.shelf) return inp.cycle;
+      const safetyDays = safetyAt(t) / Math.max(1, forecast[t]);
+      return Math.max(1, Math.min(inp.cycle, Math.floor(inp.shelf * SELL_THROUGH - safetyDays)));
+    };
+    const orderUpToAt = (t) => ahead(sumExpected, t, inp.lead + coverAt(t)) + safetyAt(t);
 
     /* Opening stock ignores planned and committed demand, so changing them shows their effect */
     const openSafety = safetyAt(0);
     const openMin = ahead(sumForecast, 0, inp.lead) + openSafety;
-    const openMax = ahead(sumForecast, 0, inp.lead + inp.cycle) + openSafety;
+    const openMax = ahead(sumForecast, 0, inp.lead + coverAt(0)) + openSafety;
     const start = Math.round(openMin + 0.6 * (openMax - openMin));
 
     const perDay = Math.floor(inp.committed / SHIP_DAYS);
+    const carryPerUnitDay = (inp.unitCost * inp.carryRate) / 365;
     let committed = inp.committed;
     let onHand = start;
     let pipeline = [];
     const days = [];
     const orders = [];
     const exceptions = [];
+    const lots = [{ no: 0, source: 'Opening stock', received: 0, expires: inp.shelf ? inp.shelf : null, qty: start, shipped: 0, expired: 0 }];
 
     for (let t = 0; t < DAYS; t += 1) {
       const opening = onHand;
+
+      /* Anything that has reached its shelf life is written off before the day starts */
+      let expired = 0;
+      if (inp.shelf) {
+        lots.forEach((lot) => {
+          const left = lot.qty - lot.shipped - lot.expired;
+          if (left > 0 && lot.expires <= t) {
+            lot.expired += left;
+            expired += left;
+          }
+        });
+        onHand -= expired;
+      }
+
       let received = 0;
       pipeline = pipeline.filter((po) => {
         if (po.due === t) {
           received += po.qty;
+          lots.push({ no: po.no, source: 'Order ' + po.no, received: t, expires: inp.shelf ? t + inp.shelf : null, qty: po.qty, shipped: 0, expired: 0 });
           return false;
         }
         return true;
@@ -222,6 +258,15 @@
       onHand -= sold;
       committed -= committedShip;
 
+      /* Ship the oldest stock first */
+      let toShip = sold;
+      for (let k = 0; k < lots.length && toShip > 0; k += 1) {
+        const left = lots[k].qty - lots[k].shipped - lots[k].expired;
+        const take = Math.min(left, toShip);
+        lots[k].shipped += take;
+        toShip -= take;
+      }
+
       const safety = Math.round(safetyAt(t));
       const reorder = Math.round(reorderAt(t));
       const orderUpTo = Math.round(orderUpToAt(t));
@@ -230,14 +275,15 @@
       let ordered = 0;
       if (position <= reorder) {
         ordered = Math.max(1, orderUpTo - position);
-        pipeline.push({ due: t + inp.lead, qty: ordered });
-        orders.push({ no: orders.length + 1, placed: t, due: t + inp.lead, qty: ordered, position, reorder, orderUpTo });
+        pipeline.push({ due: t + inp.lead, qty: ordered, no: orders.length + 1 });
+        orders.push({ no: orders.length + 1, placed: t, due: t + inp.lead, qty: ordered, position, reorder, orderUpTo, value: ordered * inp.unitCost });
         onOrder += ordered;
         position += ordered;
       }
 
-      if (short > 0) exceptions.push({ t, type: 'Out of stock', onHand, safety, short });
-      else if (onHand < safety) exceptions.push({ t, type: 'Below safety stock', onHand, safety, short: 0 });
+      if (expired > 0) exceptions.push({ t, type: 'Stock expired', onHand, safety, short: 0, expired });
+      if (short > 0) exceptions.push({ t, type: 'Out of stock', onHand, safety, short, expired: 0 });
+      else if (onHand < safety) exceptions.push({ t, type: 'Below safety stock', onHand, safety, short: 0, expired: 0 });
 
       days.push({
         t,
@@ -251,6 +297,8 @@
         sold,
         short,
         opening,
+        expired,
+        cover: coverAt(t),
         received,
         ordered,
         onHand,
@@ -260,7 +308,9 @@
         position,
         safety,
         reorder,
-        orderUpTo
+        orderUpTo,
+        value: onHand * inp.unitCost,
+        carrying: onHand * carryPerUnitDay
       });
     }
 
@@ -290,6 +340,9 @@
         short: sum('short'),
         received: sum('received'),
         ordered: sum('ordered'),
+        orderCount: slice.filter((d) => d.ordered > 0).length,
+        expired: sum('expired'),
+        carrying: sum('carrying'),
         opening: first.opening,
         onHand: last.onHand,
         committed: last.committed,
@@ -340,8 +393,16 @@
         average: Math.round(average),
         fillRate: demand ? sum('sold') / demand : 1,
         daysOfSupply: demand ? average / (demand / (slice.length * 7)) : 0,
-        turns: average ? (demand / slice.length) * WEEKS / average : 0
+        turns: average ? (demand / slice.length) * WEEKS / average : 0,
+        value: average * inp.unitCost,
+        carrying: sum('carrying'),
+        orderCount: sum('orderCount'),
+        ordering: sum('orderCount') * inp.orderCost,
+        lost: sum('short') * inp.margin,
+        expired: sum('expired'),
+        expiredCost: sum('expired') * inp.unitCost
       };
+      row.cost = row.carrying + row.ordering + row.lost + row.expiredCost;
       row.vsLastYear = row.lastYear ? row.plan / row.lastYear - 1 : 0;
       return row;
     });
@@ -349,6 +410,13 @@
     const total = (rows, key) => rows.reduce((sum, r) => sum + r[key], 0);
     const yearDemand = total(weeks, 'demand');
     const yearAverage = total(days, 'onHand') / DAYS;
+    const cost = {
+      carrying: total(days, 'carrying'),
+      ordering: orders.length * inp.orderCost,
+      lost: total(weeks, 'short') * inp.margin,
+      expired: total(days, 'expired') * inp.unitCost
+    };
+    cost.total = cost.carrying + cost.ordering + cost.lost + cost.expired;
 
     return {
       inp,
@@ -360,9 +428,15 @@
       months,
       orders,
       exceptions,
+      lots,
+      cost,
       byCustomer,
       historyTotal,
       year: {
+        expired: total(days, 'expired'),
+        safety: total(days, 'safety') / DAYS,
+        cover: total(days, 'cover') / DAYS,
+        capped: days.some((d) => d.cover < inp.cycle),
         plan: total(weeks, 'plan'),
         forecast: total(weeks, 'forecast'),
         demand: yearDemand,
@@ -376,9 +450,7 @@
         bias: total(weeks, 'plan') ? total(weeks, 'error') / total(weeks, 'plan') : 0
       },
       stats: {
-        safety: days[0].safety,
-        reorder: days[0].reorder,
-        orderUpTo: days[0].orderUpTo,
+        fillRate: yearDemand ? total(weeks, 'sold') / yearDemand : 1,
         average: Math.round(yearAverage),
         orders: orders.length,
         outDays: exceptions.filter((e) => e.short > 0).length
@@ -424,7 +496,7 @@
     const y1 = M.t;
     let peak = p.start;
     p.days.forEach((d) => {
-      peak = Math.max(peak, d.orderUpTo, d.opening + d.received);
+      peak = Math.max(peak, d.orderUpTo, d.opening - d.expired + d.received);
     });
     const step = niceStep(peak * 1.05);
     const top = Math.ceil((peak * 1.05) / step) * step;
@@ -449,7 +521,9 @@
     p.days.forEach((d, i) => {
       const cmd = i ? 'L' : 'M';
       const px = x(i + 1).toFixed(1);
-      if (d.received > 0) path += 'L' + x(i).toFixed(1) + ' ' + y(d.opening + d.received).toFixed(1);
+      /* at the start of a day: expired stock drops out, then a receipt lifts the line */
+      if (d.expired > 0) path += 'L' + x(i).toFixed(1) + ' ' + y(d.opening - d.expired).toFixed(1);
+      if (d.received > 0) path += 'L' + x(i).toFixed(1) + ' ' + y(d.opening - d.expired + d.received).toFixed(1);
       path += 'L' + px + ' ' + y(d.onHand).toFixed(1);
       maxPath += cmd + px + ' ' + y(d.orderUpTo).toFixed(1);
       minPath += cmd + px + ' ' + y(d.reorder).toFixed(1);
@@ -468,6 +542,9 @@
     });
     p.days.forEach((d, i) => {
       if (d.ordered > 0) svg.appendChild(el('circle', { class: 'po', cx: x(i + 1), cy: y(d.onHand), r: narrow ? 3 : 4 }));
+    });
+    p.days.forEach((d, i) => {
+      if (d.expired > 0) svg.appendChild(el('circle', { class: 'exp', cx: x(i), cy: y(d.opening), r: narrow ? 3.5 : 4.5 }));
     });
 
     const cross = el('line', { class: 'cross', y1, y2: y0, visibility: 'hidden' });
@@ -489,6 +566,7 @@
     chart.dot.setAttribute('visibility', 'visible');
 
     const events = [];
+    if (d.expired > 0) events.push('Expired ' + int.format(d.expired));
     if (d.received > 0) events.push('Received ' + int.format(d.received));
     if (d.short > 0) events.push('Out of stock, ' + int.format(d.short) + ' short');
     if (d.ordered > 0) events.push('Ordered ' + int.format(d.ordered));
@@ -539,8 +617,41 @@
   const col = (key, label, kind) => ({ key, label, kind: kind || 'int' });
   const pct = (v) => Math.round(v * 100) + '%';
   const signed = (v) => (v > 0 ? '+' : '') + pct(v);
+  const usd = (v) => '$' + int.format(v);
 
-  const DAILY = [col('week', 'Week'), col('day', 'Day'), col('month', 'Month', 'text'), col('forecast', 'Forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed shipped'), col('demand', 'Total demand'), col('sold', 'Shipped'), col('short', 'Short'), col('received', 'Received'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('safety', 'Safety stock'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level'), col('ordered', 'Ordered')];
+  const LEVELS = [[80, 0.8416], [85, 1.0364], [90, 1.2816], [95, 1.6449], [98, 2.0537], [99, 2.3263], [99.9, 3.0902]];
+  const CYCLES = [7, 14, 21, 28, 35];
+
+  /* Runs the same year again with one input changed, and notes which row is cheapest and which is the current setting. */
+  function tradeoff(p, variants, isCurrent) {
+    const rows = variants.map((v) => {
+      const alt = buildPlan(Object.assign({}, p.inp, v.change));
+      return Object.assign({
+        safety: Math.round(alt.year.safety),
+        average: alt.stats.average,
+        orders: alt.stats.orders,
+        fillRate: alt.year.fillRate,
+        outDays: alt.stats.outDays,
+        carrying: alt.cost.carrying,
+        ordering: alt.cost.ordering,
+        lost: alt.cost.lost,
+        expired: alt.cost.expired,
+        total: alt.cost.total,
+        capped: alt.year.capped
+      }, v.row);
+    });
+    const best = Math.min.apply(null, rows.map((r) => r.total));
+    rows.forEach((r, i) => {
+      const notes = [];
+      if (r.total === best) notes.push('Lowest total cost');
+      if (isCurrent(variants[i])) notes.push('Your setting');
+      if (r.capped) notes.push('Capped by shelf life');
+      r.note = notes.join(', ');
+    });
+    return rows;
+  }
+
+  const DAILY = [col('week', 'Week'), col('day', 'Day'), col('month', 'Month', 'text'), col('forecast', 'Forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed shipped'), col('demand', 'Total demand'), col('sold', 'Shipped'), col('short', 'Short'), col('received', 'Received'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('safety', 'Safety stock'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level'), col('ordered', 'Ordered'), col('expired', 'Expired'), col('value', 'Inventory value', 'usd2'), col('carrying', 'Carrying cost', 'usd2')];
 
   const REPORTS = {
     position: (p) => ({
@@ -564,7 +675,7 @@
       blurb: 'The three lines on the chart, week by week. They move with the forecast, so they rise ahead of a busy season or a planned-demand week and fall after it.',
       columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('forecastPerDay', 'Forecast per day'), col('leadDemand', 'Lead-time demand'), col('safety', 'Safety stock'), col('reorder', 'Reorder point (min)'), col('orderUpTo', 'Order-up-to level (max)'), col('orderSize', 'Order size at the min')],
       rows: p.weeks,
-      footer: 'Lead time ' + p.inp.lead + ' days. Order cycle ' + p.inp.cycle + ' days.'
+      footer: 'Lead time ' + p.inp.lead + ' days. Order cycle ' + p.inp.cycle + ' days' + (p.year.capped ? ', capped to about ' + Math.round(p.year.cover) + ' days by the shelf life.' : '.')
     }),
 
     orders: (p) => ({
@@ -586,11 +697,59 @@
 
     exceptions: (p) => ({
       title: 'Exceptions',
-      blurb: 'The days that need a person: the shelf ran empty, or stock dipped into the safety stock. A good plan keeps this list short.',
-      columns: [col('when', 'When', 'text'), col('type', 'Exception', 'text'), col('onHand', 'On hand'), col('safety', 'Safety stock'), col('short', 'Units short')],
+      blurb: 'The days that need a person: the shelf ran empty, stock dipped into the safety stock, or stock passed its shelf life. A good plan keeps this list short.',
+      columns: [col('when', 'When', 'text'), col('type', 'Exception', 'text'), col('onHand', 'On hand'), col('safety', 'Safety stock'), col('short', 'Units short'), col('expired', 'Units expired')],
       rows: p.exceptions.map((e) => Object.assign({ when: weekName(p.days[e.t]) }, e)),
-      empty: 'No exceptions. Nothing ran out, and stock never dipped into the safety stock.',
+      empty: 'No exceptions. Nothing ran out, nothing expired, and stock never dipped into the safety stock.',
       footer: p.exceptions.length ? int.format(p.exceptions.length) + ' exception days out of ' + DAYS + '.' : ''
+    }),
+
+    costMonthly: (p) => ({
+      title: 'Cost by month',
+      blurb: 'What the plan costs to run. Carrying cost is the price of holding stock. Ordering cost, lost sales, and expired stock are what you pay for holding too little, ordering too often, or holding it too long.',
+      columns: [col('month', 'Month', 'text'), col('average', 'Average on hand'), col('value', 'Inventory value', 'usd'), col('carrying', 'Carrying cost', 'usd'), col('orderCount', 'Orders'), col('ordering', 'Ordering cost', 'usd'), col('short', 'Units short'), col('lost', 'Lost sales', 'usd'), col('expired', 'Units expired'), col('expiredCost', 'Expired stock', 'usd'), col('cost', 'Total cost', 'usd')],
+      rows: p.months,
+      footer: 'Year: ' + usd(p.cost.total) + ' in total. Carrying ' + usd(p.cost.carrying) + ', ordering ' + usd(p.cost.ordering) + ', lost sales ' + usd(p.cost.lost) + ', expired stock ' + usd(p.cost.expired) + '.'
+    }),
+
+    serviceTradeoff: (p) => {
+      const rows = tradeoff(p, LEVELS.map((l) => ({ change: { z: l[1] }, row: { level: l[0] + '%' }, z: l[1] })), (v) => v.z === p.inp.z);
+      const best = rows.filter((r) => r.note.indexOf('Lowest') === 0)[0];
+      return {
+        title: 'Service level trade-off',
+        blurb: 'The same year run at seven service levels. A higher target means more safety stock, so carrying cost and expiry go up while lost sales come down. The cheapest plan is where those meet.',
+        columns: [col('level', 'Service level target', 'text'), col('total', 'Total cost', 'usd'), col('note', 'Note', 'text'), col('carrying', 'Carrying cost', 'usd'), col('lost', 'Lost sales', 'usd'), col('expired', 'Expired stock', 'usd'), col('ordering', 'Ordering cost', 'usd'), col('fillRate', 'Fill rate', 'pct1'), col('average', 'Average on hand'), col('safety', 'Safety stock')],
+        rows,
+        footer: 'Lowest total cost on this history: ' + best.level + ' target, ' + usd(best.total) + ' a year.'
+      };
+    },
+
+    cycleTradeoff: (p) => {
+      const cycles = CYCLES.indexOf(p.inp.cycle) === -1 ? CYCLES.concat([p.inp.cycle]).sort((a, b) => a - b) : CYCLES;
+      const rows = tradeoff(p, cycles.map((c) => ({ change: { cycle: c }, row: { cycle: c }, cycle: c })), (v) => v.cycle === p.inp.cycle);
+      const best = rows.filter((r) => r.note.indexOf('Lowest') === 0)[0];
+      return {
+        title: 'Order cycle trade-off',
+        blurb: 'The same year run at different order cycles. Ordering less often saves on ordering cost, but each order is bigger, so more stock sits on the shelf for longer and more of it can expire. Past the shelf life, the planner caps the order.',
+        columns: [col('cycle', 'Order cycle, days'), col('total', 'Total cost', 'usd'), col('note', 'Note', 'text'), col('ordering', 'Ordering cost', 'usd'), col('carrying', 'Carrying cost', 'usd'), col('expired', 'Expired stock', 'usd'), col('lost', 'Lost sales', 'usd'), col('orders', 'Orders placed'), col('average', 'Average on hand')],
+        rows,
+        footer: 'Lowest total cost on this history: a ' + best.cycle + '-day cycle, ' + usd(best.total) + ' a year.'
+      };
+    },
+
+    lots: (p) => ({
+      title: 'Lots and expiry',
+      blurb: 'Every receipt is a lot with its own expiry date. Stock ships oldest first, and whatever is still on the shelf when a lot reaches its shelf life is written off.',
+      columns: [col('source', 'Lot', 'text'), col('receivedOn', 'Received', 'text'), col('expiresOn', 'Expires', 'text'), col('qty', 'Quantity'), col('shipped', 'Shipped'), col('expired', 'Expired'), col('left', 'Left at year end'), col('writeOff', 'Written off', 'usd')],
+      rows: p.lots.map((lot) => Object.assign({
+        receivedOn: weekDay(lot.received),
+        expiresOn: lot.expires === null ? 'Does not expire' : lot.expires < DAYS ? weekDay(lot.expires) : 'Next year',
+        left: lot.qty - lot.shipped - lot.expired,
+        writeOff: lot.expired * p.inp.unitCost
+      }, lot)),
+      footer: p.inp.shelf
+        ? 'Shelf life ' + p.inp.shelf + ' days' + (p.year.capped ? ', so orders are capped at about ' + Math.round(p.year.cover) + ' days of demand. ' : '. ') + int.format(p.year.expired) + (p.year.expired === 1 ? ' unit' : ' units') + ' expired, ' + usd(p.cost.expired) + ' written off.'
+        : 'This product does not expire. Set a shelf life to see lots age out.'
     }),
 
     forecastWeekly: (p) => ({
@@ -664,6 +823,7 @@
     if (kind === 'signed') return signed(value);
     if (kind === 'dec') return dec.format(value);
     if (kind === 'one') return one.format(value);
+    if (kind === 'usd' || kind === 'usd2') return usd(value);
     return int.format(value);
   }
 
@@ -721,6 +881,11 @@
     const committed = Number($('pl-committed').value);
     const profile = $('pl-profile').value;
     const z = Number(root.querySelector('input[name="pl-svc"]:checked').value);
+    const unitCost = Number($('pl-unit').value);
+    const carryRate = Number($('pl-carry').value) / 100;
+    const orderCost = Number($('pl-ordercost').value);
+    const margin = Number($('pl-margin').value);
+    const shelf = Number($('pl-shelf').value);
 
     $('out-lead').textContent = lead + ' days';
     $('out-cycle').textContent = cycle + ' days';
@@ -728,14 +893,28 @@
     $('out-planned').textContent = int.format(plannedQty) + ' units';
     $('out-week').textContent = 'Week ' + plannedWeek + ' (' + MONTHS[monthOfDay((plannedWeek - 1) * 7)] + ')';
     $('out-committed').textContent = int.format(committed) + ' units';
+    $('out-unit').textContent = '$' + unitCost;
+    $('out-carry').textContent = Math.round(carryRate * 100) + '% a year';
+    $('out-ordercost').textContent = '$' + orderCost;
+    $('out-margin').textContent = '$' + margin;
 
-    plan = buildPlan({ lead, cycle, cv, plannedQty, plannedWeek, committed, profile, z });
-    $('st-ss').textContent = int.format(plan.stats.safety);
-    $('st-rop').textContent = int.format(plan.stats.reorder);
-    $('st-outl').textContent = int.format(plan.stats.orderUpTo);
+    plan = buildPlan({ lead, cycle, cv, plannedQty, plannedWeek, committed, profile, z, unitCost, carryRate, orderCost, margin, shelf });
+    $('st-fill').textContent = one.format(plan.stats.fillRate * 100) + '%';
     $('st-avg').textContent = int.format(plan.stats.average);
     $('st-orders').textContent = int.format(plan.stats.orders);
     $('st-out').textContent = int.format(plan.stats.outDays);
+
+    /* The balance: four costs, one total, and a bar showing how they split */
+    const cost = plan.cost;
+    $('bal-total').textContent = usd(cost.total);
+    [['carrying', 'bal-carrying'], ['ordering', 'bal-ordering'], ['lost', 'bal-lost'], ['expired', 'bal-expired']].forEach((pair) => {
+      $(pair[1]).textContent = usd(cost[pair[0]]);
+      const segment = $(pair[1] + '-bar');
+      const share = cost.total > 0 ? cost[pair[0]] / cost.total : 0;
+      segment.style.flexGrow = share;
+      segment.hidden = share < 0.002;
+    });
+    $('key-expired').hidden = !shelf;
 
     const keep = cursor;
     drawChart();

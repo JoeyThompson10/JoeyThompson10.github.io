@@ -58,6 +58,10 @@
   --btn-hover: #12242f;
 
   --series: #2a78d6;
+  --cost-1: #2a78d6;
+  --cost-2: #eb6834;
+  --cost-3: #1baf7a;
+  --cost-4: #eda100;
   --critical: #b3261e;
 
   --plate-a: #d8dddf;
@@ -89,6 +93,10 @@
     --btn-hover: #ffd044;
 
     --series: #3987e5;
+    --cost-1: #3987e5;
+    --cost-2: #d95926;
+    --cost-3: #199e70;
+    --cost-4: #c98500;
     --critical: #ff8a80;
 
     --plate-a: #46555f;
@@ -378,8 +386,8 @@ h1 {
 
 .plan-controls {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
-  gap: 1.25rem 2.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem 3rem;
   margin-top: 1.5rem;
 }
 
@@ -392,9 +400,7 @@ h1 {
 
 .group-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
-  gap: 0.9rem 1.5rem;
-  align-items: start;
+  gap: 0.8rem;
 }
 
 .field {
@@ -486,11 +492,82 @@ h1 {
   outline-offset: -3px;
 }
 
+/* The balance: one total, four costs, and a bar showing how they split */
+
+.balance {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: 1.25rem 3rem;
+  align-items: end;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+.balance-label {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.balance-figure {
+  font-size: clamp(2.5rem, 5vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.balance-bar {
+  display: flex;
+  gap: 2px;
+  height: 0.9rem;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.balance-bar span {
+  flex: 0 1 0;
+  min-width: 3px;
+  transition: flex-grow 0.25s ease;
+}
+
+.balance-parts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.7rem;
+}
+
+.balance-parts dt {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+
+.balance-parts dd {
+  margin-top: 0.1rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.k-box {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+}
+
+.b1 { background: var(--cost-1); }
+.b2 { background: var(--cost-2); }
+.b3 { background: var(--cost-3); }
+.b4 { background: var(--cost-4); }
+
 .stats {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem 1.25rem;
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   padding-top: 1.1rem;
   border-top: 1px solid var(--rule);
 }
@@ -699,6 +776,13 @@ h1 {
   background: var(--ink);
 }
 
+.k-exp {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+
 .k-out {
   width: 0.7rem;
   height: 0.4rem;
@@ -768,6 +852,12 @@ h1 {
 #plan-chart .po {
   fill: var(--ink);
   stroke: var(--paper);
+  stroke-width: 2;
+}
+
+#plan-chart .exp {
+  fill: var(--paper);
+  stroke: var(--ink);
   stroke-width: 2;
 }
 
@@ -1434,11 +1524,11 @@ footer.wrap {
 
 @media (max-width: 1040px) {
   .plan-controls {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   }
 
-  .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .balance {
+    grid-template-columns: 1fr;
   }
 
   .hero {
@@ -1489,7 +1579,8 @@ footer.wrap {
     padding: 1.1rem;
   }
 
-  .stats {
+  .stats,
+  .balance-parts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1545,6 +1636,10 @@ footer.wrap {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .balance-bar span {
+    transition: none;
   }
 }
 

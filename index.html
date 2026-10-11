@@ -221,12 +221,12 @@
     <section id="example" class="band band-wide wrap">
       <div class="band-head">
         <h2>An example you can try</h2>
-        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, watch the projection move, then read and export any of twelve reports.</p>
+        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, watch the cost and the projection move, then read and export any of sixteen reports.</p>
       </div>
 
       <section class="plan card" id="plan" aria-labelledby="plan-title" hidden>
         <h3 id="plan-title">What to order, and when</h3>
-        <p class="card-sub">One product, a year ahead. The planner builds a forecast from last year's sales and a seasonal profile, adds the demand you already know about, and orders up to a target whenever stock runs low.</p>
+        <p class="card-sub">One product, a year ahead. Hold too little and you lose sales. Hold too much and you pay to carry it, and some of it may expire. The planner forecasts demand, orders up to a target when stock runs low, and prices out the result.</p>
 
         <form class="plan-controls" id="plan-controls">
           <fieldset class="group">
@@ -242,8 +242,8 @@
                 </select>
               </label>
               <label class="field">
-                <span class="field-label">Day-to-day swings <output id="out-cv">30%</output></span>
-                <input type="range" id="pl-cv" min="10" max="60" step="5" value="30">
+                <span class="field-label">Day-to-day swings <output id="out-cv">40%</output></span>
+                <input type="range" id="pl-cv" min="10" max="60" step="5" value="40">
               </label>
               <label class="field">
                 <span class="field-label">Planned demand <output id="out-planned">1,500 units</output></span>
@@ -280,12 +280,64 @@
               </fieldset>
             </div>
           </fieldset>
+          <fieldset class="group">
+            <legend>Cost</legend>
+            <div class="group-grid">
+              <label class="field">
+                <span class="field-label">Unit cost <output id="out-unit">$12</output></span>
+                <input type="range" id="pl-unit" min="1" max="100" step="1" value="12">
+              </label>
+              <label class="field">
+                <span class="field-label">Carrying cost <output id="out-carry">25% a year</output></span>
+                <input type="range" id="pl-carry" min="5" max="60" step="1" value="25">
+              </label>
+              <label class="field">
+                <span class="field-label">Cost to place an order <output id="out-ordercost">$60</output></span>
+                <input type="range" id="pl-ordercost" min="0" max="300" step="10" value="60">
+              </label>
+              <label class="field">
+                <span class="field-label">Profit lost per unit short <output id="out-margin">$8</output></span>
+                <input type="range" id="pl-margin" min="0" max="50" step="1" value="8">
+              </label>
+              <label class="field">
+                <span class="field-label">Shelf life</span>
+                <select id="pl-shelf">
+                  <option value="0">Does not expire</option>
+                  <option value="14">14 days</option>
+                  <option value="21">21 days</option>
+                  <option value="30" selected>30 days</option>
+                  <option value="45">45 days</option>
+                  <option value="60">60 days</option>
+                  <option value="90">90 days</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
         </form>
 
+        <div class="balance" aria-live="polite">
+          <div class="balance-total">
+            <p class="balance-label">What this plan costs, for the year</p>
+            <p class="balance-figure" id="bal-total">$0</p>
+          </div>
+          <div class="balance-split">
+            <div class="balance-bar" aria-hidden="true">
+              <span class="b1" id="bal-carrying-bar"></span>
+              <span class="b2" id="bal-ordering-bar"></span>
+              <span class="b3" id="bal-lost-bar"></span>
+              <span class="b4" id="bal-expired-bar"></span>
+            </div>
+            <dl class="balance-parts">
+              <div><dt><span class="key k-box b1" aria-hidden="true"></span>Carrying cost</dt><dd id="bal-carrying">$0</dd></div>
+              <div><dt><span class="key k-box b2" aria-hidden="true"></span>Ordering cost</dt><dd id="bal-ordering">$0</dd></div>
+              <div><dt><span class="key k-box b3" aria-hidden="true"></span>Lost sales</dt><dd id="bal-lost">$0</dd></div>
+              <div><dt><span class="key k-box b4" aria-hidden="true"></span>Expired stock</dt><dd id="bal-expired">$0</dd></div>
+            </dl>
+          </div>
+        </div>
+
         <dl class="stats" aria-live="polite">
-          <div><dt>Safety stock today</dt><dd id="st-ss">0</dd></div>
-          <div><dt>Reorder point today</dt><dd id="st-rop">0</dd></div>
-          <div><dt>Order-up-to level today</dt><dd id="st-outl">0</dd></div>
+          <div><dt>Fill rate</dt><dd id="st-fill">0%</dd></div>
           <div><dt>Average on hand</dt><dd id="st-avg">0</dd></div>
           <div><dt>Orders placed</dt><dd id="st-orders">0</dd></div>
           <div><dt><span class="key-critical" aria-hidden="true"></span>Days out of stock</dt><dd id="st-out">0</dd></div>
@@ -307,6 +359,7 @@
             <li><span class="key k-line k-min" aria-hidden="true"></span>Reorder point (min)</li>
             <li><span class="key k-line k-safety" aria-hidden="true"></span>Safety stock</li>
             <li><span class="key k-po" aria-hidden="true"></span>Order placed</li>
+            <li id="key-expired"><span class="key k-exp" aria-hidden="true"></span>Stock expired</li>
             <li><span class="key k-out" aria-hidden="true"></span>Out of stock</li>
           </ul>
           <div class="sim-plot" id="plan-plot">
@@ -318,9 +371,18 @@
         <fieldset class="report-picker" id="report-picker">
           <legend>Reports</legend>
           <div class="pick-group">
+            <span class="pick-label" id="pick-cost">Cost</span>
+            <div class="pick-row" role="group" aria-labelledby="pick-cost">
+              <label><input type="radio" name="pl-report" value="serviceTradeoff" checked><span>Service level trade-off</span></label>
+              <label><input type="radio" name="pl-report" value="cycleTradeoff"><span>Order cycle trade-off</span></label>
+              <label><input type="radio" name="pl-report" value="costMonthly"><span>Cost by month</span></label>
+              <label><input type="radio" name="pl-report" value="lots"><span>Lots and expiry</span></label>
+            </div>
+          </div>
+          <div class="pick-group">
             <span class="pick-label" id="pick-inventory">Inventory</span>
             <div class="pick-row" role="group" aria-labelledby="pick-inventory">
-              <label><input type="radio" name="pl-report" value="position" checked><span>Inventory position</span></label>
+              <label><input type="radio" name="pl-report" value="position"><span>Inventory position</span></label>
               <label><input type="radio" name="pl-report" value="projection"><span>Projected inventory</span></label>
               <label><input type="radio" name="pl-report" value="levels"><span>Key levels</span></label>
               <label><input type="radio" name="pl-report" value="orders"><span>Suggested orders</span></label>
@@ -344,7 +406,7 @@
         <div class="report" id="report" role="region" aria-labelledby="report-title">
           <div class="report-head">
             <div>
-              <h4 id="report-title">Inventory position</h4>
+              <h4 id="report-title">Service level trade-off</h4>
               <p id="report-blurb"></p>
             </div>
             <p class="report-actions">
@@ -369,13 +431,16 @@
               <div><dt>Planned demand</dt><dd>Demand you know is coming that history would not predict, such as a promotion or one large contract order.</dd></div>
               <div><dt>Committed quantity</dt><dd>Stock on the shelf already promised to open customer orders. Here it ships over the first five days, and nobody else can have it.</dd></div>
               <div><dt>Inventory position</dt><dd>On hand, plus on order, minus committed. This is the number the planner watches.</dd></div>
+              <div><dt>Carrying cost</dt><dd>What it costs to hold stock for a year, as a share of its value: the money tied up, the space, insurance, and shrinkage.</dd></div>
+              <div><dt>Shelf life</dt><dd>How long a unit can sit before it has to be written off. Stock ships oldest first, and the planner will not order more than it expects to sell with a tenth of the shelf life to spare.</dd></div>
+              <div><dt>Fill rate</dt><dd>Units shipped as a share of units customers asked for.</dd></div>
               <div><dt>Safety stock</dt><dd>Extra stock held to cover the gap between the forecast and what actually sells.</dd></div>
               <div><dt>Reorder point (min)</dt><dd>The level that triggers an order: expected demand during the supplier's lead time, plus safety stock.</dd></div>
               <div><dt>Order-up-to level (max)</dt><dd>The target an order brings you back up to: expected demand over the lead time and the order cycle, plus safety stock. Also written OUTL, and called the max in a min/max system.</dd></div>
             </dl>
           </details>
         </div>
-        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own sales history, your open orders, and your suppliers' actual delivery times.</p>
+        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own sales history, open orders, costs, and supplier delivery times.</p>
       </section>
     </section>
 
