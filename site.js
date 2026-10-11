@@ -36,7 +36,7 @@
 /* ---------------------------------------------------------------------------
    2. From the register to the supplier order.
 
-   A made-up parts counter: eight products, three suppliers.
+   A made-up corner store: eight products, three suppliers.
 
    Each day
      Orders due that day arrive and go on the shelf.
@@ -44,7 +44,7 @@
      A customer who asks for a product that is out counts as one "ran out".
      Any product at or below its reorder level, counting what is already on
      the way, goes on a draft order for its supplier. The quantity brings it
-     back up to its full level, rounded up to the supplier's pack size.
+     back up to its full level, rounded up to the supplier's case size.
 
    Sending
      The visitor sends each draft, or switches to automatic and every draft
@@ -58,22 +58,22 @@
   if (!root || !window.Intl) return;
 
   const SUPPLIERS = [
-    { id: 'parts', name: 'Parts distributor', lead: 2 },
-    { id: 'fluids', name: 'Fluids supplier', lead: 3 },
-    { id: 'shop', name: 'Shop supplies', lead: 5 }
+    { id: 'drinks', name: 'Beverage distributor', lead: 2 },
+    { id: 'snacks', name: 'Snack distributor', lead: 3 },
+    { id: 'goods', name: 'General goods wholesaler', lead: 5 }
   ];
 
   /* start: opening count, low: reorder level, full: level an order brings it back to,
-     pack: supplier pack size, rate: average sold per normal day */
+     pack: supplier case size, cost: per unit, rate: average sold per normal day */
   const PRODUCTS = [
-    { name: 'Oil filter', supplier: 'parts', start: 17, low: 14, full: 36, pack: 6, cost: 4.5, rate: 4.5 },
-    { name: 'Front brake pads', supplier: 'parts', start: 10, low: 5, full: 12, pack: 2, cost: 28, rate: 1.4 },
-    { name: 'Wiper blades', supplier: 'parts', start: 16, low: 7, full: 20, pack: 4, cost: 7, rate: 2 },
-    { name: 'Cabin air filter', supplier: 'parts', start: 6, low: 5, full: 12, pack: 4, cost: 9, rate: 1.2 },
-    { name: 'Motor oil, 5 qt', supplier: 'fluids', start: 26, low: 19, full: 42, pack: 6, cost: 19, rate: 4 },
-    { name: 'Coolant, 1 gal', supplier: 'fluids', start: 10, low: 6, full: 12, pack: 6, cost: 11, rate: 1 },
-    { name: 'Brake cleaner', supplier: 'shop', start: 24, low: 15, full: 36, pack: 12, cost: 3.5, rate: 1.8 },
-    { name: 'Shop towels, box', supplier: 'shop', start: 10, low: 9, full: 18, pack: 6, cost: 14, rate: 0.9 }
+    { name: 'Bottled water', supplier: 'drinks', start: 34, low: 30, full: 72, pack: 24, cost: 0.35, rate: 9 },
+    { name: 'Cola, 20 oz', supplier: 'drinks', start: 40, low: 24, full: 72, pack: 24, cost: 1.1, rate: 7 },
+    { name: 'Energy drink', supplier: 'drinks', start: 15, low: 14, full: 36, pack: 12, cost: 1.6, rate: 4 },
+    { name: 'Potato chips', supplier: 'snacks', start: 36, low: 22, full: 48, pack: 12, cost: 1.2, rate: 5 },
+    { name: 'Candy bars', supplier: 'snacks', start: 60, low: 26, full: 72, pack: 24, cost: 0.8, rate: 6 },
+    { name: 'Beef jerky', supplier: 'snacks', start: 9, low: 8, full: 24, pack: 12, cost: 4, rate: 1.5 },
+    { name: 'Paper towels', supplier: 'goods', start: 15, low: 9, full: 18, pack: 6, cost: 1.5, rate: 1 },
+    { name: 'Phone chargers', supplier: 'goods', start: 12, low: 7, full: 12, pack: 6, cost: 5, rate: 0.8 }
   ];
 
   const BUSY = { quiet: 0.6, normal: 1, busy: 1.5 };
@@ -193,7 +193,7 @@
     list.textContent = '';
     const total = state.today.reduce((sum, line) => sum + line.sold, 0);
     $('flow-sales-sub').textContent = state.day === 0
-      ? 'The shop has not opened yet. Run a day.'
+      ? 'The store has not opened yet. Run a day.'
       : 'Day ' + state.day + ': ' + plural(total, 'item') + ' sold.';
     state.today.forEach((line) => {
       const row = el('li');
