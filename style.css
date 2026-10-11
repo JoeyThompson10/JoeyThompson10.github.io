@@ -858,6 +858,57 @@ h4 {
   line-height: 1.5;
 }
 
+/* Problems I fix: the customer's words first, the service name last */
+
+.fixes,
+.qa {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.25rem 3rem;
+}
+
+.fixes h3,
+.qa h3 {
+  font-size: 1.4rem;
+  text-wrap: balance;
+}
+
+.fixes p,
+.qa p {
+  margin-top: 0.45rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.fixes .tag {
+  margin-top: 0.6rem;
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--tape);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.hero-contact {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.next {
+  max-width: var(--measure);
+  font-weight: 500;
+}
+
+.start-small {
+  max-width: var(--measure);
+  margin-top: 2.25rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--tape);
+}
+
 /* Who I help */
 
 .who {
@@ -1009,6 +1060,8 @@ h4 {
 .paperwork {
   max-width: var(--measure);
   margin-top: 2.25rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
 }
 
 /* About */
@@ -1330,6 +1383,8 @@ footer.wrap {
   .ways,
   .who,
   .items,
+  .fixes,
+  .qa,
   .sheet-grid {
     grid-template-columns: 1fr;
   }
