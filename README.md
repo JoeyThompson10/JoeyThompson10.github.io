@@ -17,7 +17,7 @@ DNS for the domain is managed at Squarespace Domains. Nothing here depends on AW
 | `capabilities/index.html` | One-page capability statement; prints on a single Letter page |
 | `404.html` | Not-found page |
 | `style.css` | All styles, including dark mode and print |
-| `site.js` | The two working tools on the home page: the manual-task cost calculator and the "same store, two ways" example |
+| `site.js` | The two working tools on the home page: the manual-task cost calculator and the replenishment planner example |
 | `fonts/` | Barlow and Barlow Condensed, self-hosted (SIL Open Font License, see `fonts/OFL.txt`) |
 | `img/og.png` | Social sharing card |
 | `sitemap.xml`, `robots.txt` | For search engines |
