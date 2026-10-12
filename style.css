@@ -251,6 +251,11 @@ a:hover {
   border-color: var(--btn-hover);
 }
 
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .button-quiet {
   background: transparent;
   border-color: var(--ink);
@@ -291,6 +296,16 @@ a:hover {
 
 .hero-copy {
   padding-top: 1rem;
+}
+
+.eyebrow {
+  margin-bottom: 1rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid var(--tape);
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-soft);
 }
 
 h1 {
@@ -382,272 +397,357 @@ h1 {
   margin-top: 1.1rem;
 }
 
-/* Register-to-order example */
+/* Same store, two ways */
 
-.flow {
+.race {
   min-width: 0;
 }
 
-.flow-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 21rem) minmax(0, 1fr);
-  gap: 1rem 2rem;
-  align-items: end;
-  margin-top: 1.5rem;
-}
-
-.seg-two {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.flow-buttons {
+.race-controls {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1.25rem;
 }
 
-.flow-status {
-  min-height: 1.5em;
-  margin-top: 1.1rem;
-  font-size: 0.98rem;
-  font-weight: 500;
+.race-weeks {
+  flex: 0 1 18rem;
 }
 
-.flow-steps {
+.race-weeks .seg-row {
+  margin-top: 0;
+}
+
+.race-weeks .seg-row span {
+  padding: 0.55rem 0;
+}
+
+.race-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.race-play {
+  min-width: 11.5rem;
+  text-align: center;
+}
+
+.race-body {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr) minmax(0, 1fr);
-  margin-top: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+  gap: 0 2.75rem;
+  margin-top: 1.25rem;
   border-top: 1px solid var(--rule);
 }
 
-.flow-step {
+.race-main {
   min-width: 0;
-  padding: 1.1rem 1.4rem 0.25rem;
+  padding-top: 1.1rem;
 }
 
-.flow-step:first-child {
-  padding-left: 0;
-}
-
-.flow-step:last-child {
-  padding-right: 0;
-}
-
-.flow-step + .flow-step {
-  border-left: 1px solid var(--rule);
-}
-
-.flow-step h4 {
+.race-when {
   display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  font-family: var(--display);
-  font-size: 1.3rem;
-  line-height: 1.15;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
 }
 
-.flow-n {
-  flex: none;
-  width: 1.5rem;
-  height: 1.5rem;
-  background: var(--tape);
-  color: #14212b;
-  font-size: 1.05rem;
+.race-day {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.race-days {
+  display: flex;
+  gap: 3px;
+  list-style: none;
+}
+
+.race-days li {
+  width: 1.35rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--floor);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
   line-height: 1.5rem;
   text-align: center;
 }
 
-.flow-sub {
-  min-height: 2.7em;
-  margin-top: 0.45rem;
-  font-size: 0.9rem;
-  line-height: 1.35;
-  color: var(--ink-soft);
+.race-days li:nth-child(8) {
+  margin-left: 0.45rem;
 }
 
-.flow-list,
-.flow-order ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.93rem;
+.race-days li.is-past {
+  border-color: var(--ink-soft);
+  background: var(--ink-soft);
+  color: var(--paper);
 }
 
-.flow-list li,
-.flow-order li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.15rem 0.5rem;
-  padding: 0.3rem 0;
-}
-
-.flow-list li + li {
-  border-top: 1px solid var(--rule);
-}
-
-.flow-qty {
-  flex: none;
-  min-width: 2.4rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.flow-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.93rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.flow-table th,
-.flow-table td {
-  padding: 0.3rem 0.75rem 0.3rem 0;
-  text-align: right;
-  font-weight: 400;
-  border-top: 1px solid var(--rule);
-}
-
-.flow-table thead th {
-  border-top: 0;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--ink-soft);
-  white-space: nowrap;
-}
-
-.flow-table tbody th {
-  font-weight: 500;
-}
-
-.flow-table .left {
-  text-align: left;
-}
-
-.flow-table tr > :last-child {
-  padding-right: 0;
-}
-
-.flow-count {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 6.5rem;
-}
-
-.flow-meter {
-  position: relative;
-  flex: 1;
-  height: 0.6rem;
-  background: var(--floor);
-  border: 1px solid var(--rule);
-}
-
-.flow-fill {
-  display: block;
-  height: 100%;
-  background: var(--series);
-  transition: width 0.3s ease;
-}
-
-.flow-fill.flow-low {
-  background: var(--cost-4);
-}
-
-.flow-mark {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--ink);
-}
-
-.flow-num {
-  flex: none;
-  width: 1.6rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-.flow-flag {
-  display: inline-block;
-  padding: 0 0.4rem;
-  border: 1px solid currentColor;
-  border-radius: 2px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.flow-flag.flow-ok {
-  padding-left: 0;
-  border-color: transparent;
-  font-weight: 400;
-  color: var(--ink-soft);
-}
-
-.flow-flag.flow-low {
+.race-days li.is-now {
   border-color: var(--tape);
   background: var(--tape);
   color: #14212b;
 }
 
-.flow-flag.flow-way {
-  color: var(--link);
+.race-news {
+  min-height: 3.3rem;
+  margin-top: 0.8rem;
+  font-size: 0.98rem;
+  line-height: 1.4;
 }
 
-.flow-flag.flow-out {
-  color: var(--critical);
-}
-
-.flow-order {
-  margin-top: 0.6rem;
-  padding: 0.8rem 0.9rem 0.9rem;
-  border: 1px solid var(--ink-soft);
-  border-radius: 4px;
-  background: var(--floor);
-}
-
-.flow-order.flow-sent {
-  border-style: dashed;
-  border-color: var(--rule);
-  background: transparent;
-}
-
-.flow-order-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+.race-news p {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
   gap: 0.75rem;
-  margin-bottom: 0.3rem;
 }
 
-.flow-order h5 {
-  margin: 0;
-  font-size: 1rem;
+.race-news p + p {
+  margin-top: 0.2rem;
+}
+
+.race-news strong {
   font-weight: 600;
 }
 
-.flow-total {
-  font-weight: 600;
+.race-table {
+  width: 100%;
+  margin-top: 0.9rem;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
 }
 
-.flow-order .button {
-  width: 100%;
-  margin-top: 0.7rem;
+.race-table th,
+.race-table td {
+  padding: 0.34rem 0.75rem 0.34rem 0;
+  border-top: 1px solid var(--rule);
+  font-weight: 400;
+  text-align: right;
 }
 
-.flow-due,
-.flow-empty {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+.race-table tr > :last-child {
+  padding-right: 0;
+}
+
+.race-table .left {
+  text-align: left;
+}
+
+.race-table thead th {
+  border-top: 0;
+  vertical-align: bottom;
+  font-size: 0.85rem;
   color: var(--ink-soft);
 }
 
+.race-table thead th:first-child {
+  width: 26%;
+}
+
+.race-who {
+  display: block;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.race-how {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.race-table tbody th {
+  font-weight: 500;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.race-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.race-bar {
+  display: flex;
+  flex: 1;
+  height: 0.85rem;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--floor);
+}
+
+.race-fill {
+  flex: none;
+  height: 100%;
+  background: var(--series);
+  transition: width 0.4s ease;
+}
+
+.race-fill.is-low {
+  background: var(--cost-4);
+}
+
+.race-way {
+  flex: none;
+  height: 100%;
+  background: repeating-linear-gradient(-45deg, var(--series) 0 2px, transparent 2px 5px);
+  opacity: 0.6;
+  transition: width 0.4s ease;
+}
+
+.race-num {
+  flex: none;
+  width: 2.1rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.race-cell.is-out .race-bar {
+  border-color: var(--critical);
+  background: color-mix(in srgb, var(--critical) 14%, var(--floor));
+}
+
+.race-cell.is-out .race-num {
+  color: var(--critical);
+}
+
+.race-table tfoot th,
+.race-table tfoot td {
+  font-weight: 600;
+}
+
+.race-table tfoot tr:first-child > * {
+  border-top: 2px solid var(--ink);
+}
+
+.race-table tfoot td {
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.race-table tfoot td.is-bad {
+  color: var(--critical);
+}
+
+.race-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.45rem;
+  margin-top: 0.7rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.key {
+  display: inline-block;
+  width: 1.3rem;
+  height: 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.key + .key,
+.race-key .key-way {
+  margin-left: 0.6rem;
+}
+
+.key-fill {
+  background: var(--series);
+}
+
+.key-way {
+  background: repeating-linear-gradient(-45deg, var(--series) 0 2px, transparent 2px 5px);
+  opacity: 0.6;
+}
+
+.race-verdict {
+  max-width: 44rem;
+  margin-top: 1.1rem;
+  padding: 0.9rem 1rem;
+  border-left: 4px solid var(--tape);
+  background: var(--floor);
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.race-verdict:empty {
+  display: none;
+}
+
+.race-side {
+  padding: 1.1rem 0 0.25rem 2rem;
+  border-left: 1px solid var(--rule);
+}
+
+.race-side h4 {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.race-side h4 + * {
+  margin-top: 0.6rem;
+}
+
+.race-side * + h4 {
+  margin-top: 1.5rem;
+}
+
+.race-side p,
+.race-steps li {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.race-steps {
+  list-style: none;
+  counter-reset: race;
+}
+
+.race-steps li {
+  position: relative;
+  padding-left: 2.1rem;
+  counter-increment: race;
+}
+
+.race-steps li + li {
+  margin-top: 0.7rem;
+}
+
+.race-steps li::before {
+  content: counter(race);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  background: var(--tape);
+  color: #14212b;
+  font-family: var(--display);
+  font-weight: 600;
+  line-height: 1.4rem;
+  text-align: center;
+}
+
+.race-steps strong {
+  font-weight: 600;
+}
 
 .field {
   display: block;
@@ -685,6 +785,10 @@ h1 {
   border: 1px solid var(--ink-soft);
   border-radius: 3px;
   overflow: hidden;
+}
+
+.seg-row.seg-two {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .seg-row label {
@@ -725,28 +829,6 @@ h1 {
   outline-offset: -3px;
 }
 
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem 1.25rem;
-  margin-top: 1.25rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--rule);
-}
-
-.stats dt {
-  font-size: 0.85rem;
-  line-height: 1.25;
-  color: var(--ink-soft);
-}
-
-.stats dd {
-  margin-top: 0.1rem;
-  font-size: 1.6rem;
-  font-weight: 600;
-  line-height: 1.15;
-}
 
 
 .visually-hidden {
@@ -1318,33 +1400,15 @@ footer.wrap {
 /* ---------- Narrow screens ---------- */
 
 @media (max-width: 1040px) {
-  .flow-controls {
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  }
-
-  .flow-buttons {
-    justify-content: flex-start;
-  }
-
-  .flow-steps {
+  .race-body {
     grid-template-columns: 1fr;
-    border-top: 0;
   }
 
-  .flow-step,
-  .flow-step:first-child,
-  .flow-step:last-child {
-    padding: 1.1rem 0 1.25rem;
-  }
-
-  .flow-step,
-  .flow-step + .flow-step {
+  .race-side {
+    padding-left: 0;
     border-left: 0;
     border-top: 1px solid var(--rule);
-  }
-
-  .flow-sub {
-    min-height: 0;
+    padding-top: 1.25rem;
   }
 
   .hero {
@@ -1397,8 +1461,60 @@ footer.wrap {
     padding: 1.1rem;
   }
 
-  .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .race-controls .race-weeks {
+    flex-basis: 100%;
+  }
+
+  .race-table {
+    font-size: 0.9rem;
+  }
+
+  .race-table th,
+  .race-table td {
+    padding-right: 0.45rem;
+  }
+
+  .race-table thead th:first-child {
+    width: 34%;
+  }
+
+  .race-buttons {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .race-play {
+    min-width: 0;
+  }
+
+  .race-when {
+    display: block;
+  }
+
+  .race-days {
+    margin-top: 0.5rem;
+  }
+
+  .race-days li {
+    flex: 1;
+    width: auto;
+  }
+
+  .race-days li:nth-child(8) {
+    margin-left: 0.35rem;
+  }
+
+  .race-table tfoot th {
+    line-height: 1.25;
+  }
+
+  .race-news p {
+    grid-template-columns: 4.6rem minmax(0, 1fr);
+  }
+
+  .race-news {
+    min-height: 5.6rem;
   }
 
   .spec {
@@ -1440,7 +1556,15 @@ footer.wrap {
     grid-template-columns: 1fr;
   }
 
-  .flow-table .flow-at {
+  .race-bar {
+    height: 0.7rem;
+  }
+
+  .race-num {
+    width: 1.75rem;
+  }
+
+  .race-how {
     display: none;
   }
 }
@@ -1450,7 +1574,8 @@ footer.wrap {
     scroll-behavior: auto;
   }
 
-  .flow-fill {
+  .race-fill,
+  .race-way {
     transition: none;
   }
 }

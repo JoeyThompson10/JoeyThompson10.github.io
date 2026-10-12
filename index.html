@@ -67,11 +67,10 @@
   <header class="top wrap">
     <a class="brand" href="/">Thompson SWE</a>
     <nav aria-label="Sections">
-      <a href="#services">Services</a>
       <a href="#example">Example</a>
-      <a href="#how">How it works</a>
-      <a href="#who">Who I help</a>
+      <a href="#services">Services</a>
       <a href="#about">About</a>
+      <a href="#how">How it works</a>
       <a href="#contact">Contact</a>
     </nav>
   </header>
@@ -79,17 +78,18 @@
   <main id="main">
     <section class="hero wrap">
       <div class="hero-copy">
+        <p class="eyebrow">Veteran-owned software firm in Atlanta</p>
         <h1>Software that takes the busywork off your small business.</h1>
-        <p class="lede">If your team re-types orders, chases paperwork, or builds the same report every week, I build the tool that does it for them and connect it to the software you already pay for. Thompson SWE is a veteran-owned software firm in Atlanta with one engineer, Joey Thompson.</p>
+        <p class="lede">I&rsquo;m Joey Thompson. I worked as a mechanic, served four years in the Marine Corps, and now build purchasing and inventory software for large companies. Thompson SWE brings the same kind of tools to small businesses, so your people stop counting, copying, and building reports by hand.</p>
         <p class="actions">
-          <a class="button" href="mailto:joey@thompsonswe.com?subject=Project%20inquiry&amp;body=My%20business%3A%0A%0AWhat%20is%20slowing%20us%20down%3A%0A%0ABest%20way%20and%20time%20to%20reach%20me%3A%0A">Email Joey</a>
-          <a class="button button-quiet" href="#services">See what I fix</a>
+          <a class="button" href="#example">See it work in 10 seconds</a>
+          <a class="button button-quiet" href="mailto:joey@thompsonswe.com?subject=Project%20inquiry&amp;body=My%20business%3A%0A%0AWhat%20is%20slowing%20us%20down%3A%0A%0ABest%20way%20and%20time%20to%20reach%20me%3A%0A">Email Joey</a>
         </p>
         <p class="hero-contact"><a href="mailto:joey@thompsonswe.com">joey@thompsonswe.com</a>. The first call is free.</p>
         <dl class="facts-strip">
-          <div><dt>First step</dt><dd>A free half-hour call</dd></div>
-          <div><dt>Price</dt><dd>Fixed and in writing before any work starts</dd></div>
-          <div><dt>Who does the work</dt><dd>One engineer, start to finish</dd></div>
+          <div><dt>Who does the work</dt><dd>Joey, start to finish. The person you talk to writes the code.</dd></div>
+          <div><dt>Built before</dt><dd>Purchasing and inventory software for large companies</dd></div>
+          <div><dt>First step</dt><dd>A free half-hour call, then a fixed price in writing</dd></div>
           <div><dt>Where</dt><dd>On site around Atlanta, remote anywhere</dd></div>
         </dl>
       </div>
@@ -122,6 +122,81 @@
         <p class="card-note">Wages only, over 50 working weeks. It leaves out the mistakes, and whatever waits while the task gets done.</p>
         <p class="calc-cta"><a class="button button-quiet button-small" href="mailto:joey@thompsonswe.com?subject=A%20task%20I%20want%20off%20my%20plate">Tell me about that task</a></p>
       </section>
+    </section>
+
+    <section id="example" class="band band-wide wrap">
+      <div class="band-head">
+        <h2>See it work</h2>
+        <p>Two copies of the same corner store, with the same shelves and the same customers. In one, the owner counts every shelf on Monday and orders enough to fill them. In the other, the register keeps the count and software writes each order before anything runs out. Press play.</p>
+      </div>
+
+      <section class="race card" id="race" aria-labelledby="race-title" hidden>
+        <h3 id="race-title">Same store, two ways</h3>
+        <p class="card-sub">Eight products, three suppliers, two weeks of customers. Both stores get exactly the same ones.</p>
+
+        <form class="race-controls" id="race-controls">
+          <fieldset class="field seg race-weeks">
+            <legend class="visually-hidden">What kind of two weeks</legend>
+            <div class="seg-row seg-two">
+              <label><input type="radio" name="race-weeks" value="normal" checked><span>Normal weeks</span></label>
+              <label><input type="radio" name="race-weeks" value="heat"><span>Heat wave</span></label>
+            </div>
+          </fieldset>
+          <p class="race-buttons">
+            <button type="button" class="button race-play" id="race-play">Play two weeks</button>
+            <button type="button" class="button button-quiet button-small" id="race-skip">Skip to the end</button>
+          </p>
+        </form>
+
+        <div class="race-body">
+          <div class="race-main">
+            <div class="race-when">
+              <p class="race-day" id="race-day"></p>
+              <ol class="race-days" id="race-days" aria-hidden="true"></ol>
+            </div>
+
+            <div class="race-news">
+              <p><strong>By hand</strong> <span id="race-news-hand"></span></p>
+              <p><strong>Software</strong> <span id="race-news-soft"></span></p>
+            </div>
+
+            <table class="race-table">
+              <caption class="visually-hidden">Units on the shelf in each store, and running totals</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="left">On the shelf</th>
+                  <th scope="col"><span class="race-who">By hand</span><span class="race-how">Owner counts on Mondays</span></th>
+                  <th scope="col"><span class="race-who">Software</span><span class="race-how">Register keeps the count</span></th>
+                </tr>
+              </thead>
+              <tbody id="race-shelf"></tbody>
+              <tfoot>
+                <tr><th scope="row" class="left">Customers turned away</th><td id="race-away-hand">0</td><td id="race-away-soft">0</td></tr>
+                <tr><th scope="row" class="left">Sales lost</th><td id="race-lost-hand">$0</td><td id="race-lost-soft">$0</td></tr>
+                <tr><th scope="row" class="left">Hours spent counting</th><td id="race-hours-hand">0</td><td id="race-hours-soft">0</td></tr>
+              </tfoot>
+            </table>
+            <p class="race-key" aria-hidden="true"><span class="key key-fill"></span>On the shelf <span class="key key-way"></span>Ordered, on the way</p>
+
+            <p class="race-verdict" id="race-verdict" aria-live="polite"></p>
+          </div>
+
+          <aside class="race-side" aria-labelledby="race-side-title">
+            <h4 id="race-side-title">How the software store does it</h4>
+            <ol class="race-steps">
+              <li><strong>The register rings up a sale.</strong> The count for that product drops by one. Nobody walks the aisles with a clipboard.</li>
+              <li><strong>It keeps up with the pace.</strong> Every night it checks how fast each product is selling.</li>
+              <li><strong>It orders before the shelf empties.</strong> When a product will not last until the next delivery, the order goes to the right supplier.</li>
+            </ol>
+            <h4>The hand-counted store</h4>
+            <p>The owner counts every shelf on Monday morning and orders enough to fill them. Whatever sells out before the next Monday stays empty.</p>
+          </aside>
+        </div>
+
+        <p class="card-note">A made-up store with made-up customers. A real version reads sales from your own register and sends orders the way your suppliers take them: email, a spreadsheet, or their ordering site. The hand count is set at two hours a week. Each replay draws a new two weeks of customers.</p>
+      </section>
+
+      <p class="next">Is there a job like this in your business? <a href="mailto:joey@thompsonswe.com?subject=Project%20inquiry&amp;body=My%20business%3A%0A%0AWhat%20is%20slowing%20us%20down%3A%0A%0ABest%20way%20and%20time%20to%20reach%20me%3A%0A">Tell me about it</a> and I will say whether it is worth building.</p>
     </section>
 
     <section id="services" class="band wrap">
@@ -176,113 +251,6 @@
       </div>
     </section>
 
-    <section id="example" class="band band-wide wrap">
-      <div class="band-head">
-        <h2>An example you can try</h2>
-        <p>This is the kind of tool I build. A sale at the register lowers the shelf count, and a low shelf count puts the product on an order for the right supplier. Nobody counts stock or types an order.</p>
-      </div>
-
-      <section class="flow card" id="flow" aria-labelledby="flow-title" hidden>
-        <h3 id="flow-title">From the register to the supplier order</h3>
-        <p class="card-sub">A corner store with eight products and three suppliers. Run a few days and send the orders, or stop sending them and watch what runs out.</p>
-
-        <form class="flow-controls" id="flow-controls">
-          <fieldset class="field seg">
-            <legend class="field-label">How busy the store is</legend>
-            <div class="seg-row">
-              <label><input type="radio" name="fl-busy" value="quiet"><span>Quiet</span></label>
-              <label><input type="radio" name="fl-busy" value="normal" checked><span>Normal</span></label>
-              <label><input type="radio" name="fl-busy" value="busy"><span>Busy</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="field seg">
-            <legend class="field-label">Who sends the orders</legend>
-            <div class="seg-row seg-two">
-              <label><input type="radio" name="fl-mode" value="manual" checked><span>You</span></label>
-              <label><input type="radio" name="fl-mode" value="auto"><span>The software</span></label>
-            </div>
-          </fieldset>
-          <p class="flow-buttons">
-            <button type="button" class="button button-small" id="flow-day">Run a day</button>
-            <button type="button" class="button button-quiet button-small" id="flow-week">Run a week</button>
-            <button type="button" class="button button-quiet button-small" id="flow-reset">Start over</button>
-          </p>
-        </form>
-
-        <p class="flow-status" id="flow-status" role="status"></p>
-
-        <div class="flow-steps">
-          <section class="flow-step" aria-labelledby="flow-h1">
-            <h4 id="flow-h1"><span class="flow-n" aria-hidden="true">1</span>The register rings up sales</h4>
-            <p class="flow-sub" id="flow-sales-sub"></p>
-            <ul class="flow-list" id="flow-sales"></ul>
-          </section>
-
-          <section class="flow-step" aria-labelledby="flow-h2">
-            <h4 id="flow-h2"><span class="flow-n" aria-hidden="true">2</span>The shelf count updates itself</h4>
-            <p class="flow-sub">The mark on each bar is the level that triggers an order.</p>
-            <table class="flow-table">
-              <thead>
-                <tr><th scope="col" class="left">Product</th><th scope="col" class="left">On the shelf</th><th scope="col" class="flow-at">Reorder at</th><th scope="col" class="left">Status</th></tr>
-              </thead>
-              <tbody id="flow-shelf"></tbody>
-            </table>
-          </section>
-
-          <section class="flow-step" aria-labelledby="flow-h3">
-            <h4 id="flow-h3"><span class="flow-n" aria-hidden="true">3</span>The order is written for you</h4>
-            <p class="flow-sub" id="flow-orders-sub"></p>
-            <div id="flow-orders"></div>
-          </section>
-        </div>
-
-        <dl class="stats">
-          <div><dt>Day</dt><dd id="fl-day">0</dd></div>
-          <div><dt>Items sold</dt><dd id="fl-sold">0</dd></div>
-          <div><dt>Orders sent</dt><dd id="fl-sent">0</dd></div>
-          <div><dt>Times a customer was turned away</dt><dd id="fl-out">0</dd></div>
-        </dl>
-
-        <p class="card-note">A made-up store with made-up sales. A real one reads the sales from your own register and sends orders the way your suppliers take them: email, a spreadsheet, or their ordering site.</p>
-      </section>
-
-      <p class="next">Is there a job like this in your business? <a href="mailto:joey@thompsonswe.com?subject=Project%20inquiry&amp;body=My%20business%3A%0A%0AWhat%20is%20slowing%20us%20down%3A%0A%0ABest%20way%20and%20time%20to%20reach%20me%3A%0A">Tell me about it</a> and I will say whether it is worth building.</p>
-    </section>
-
-
-    <section id="how" class="band wrap">
-      <div class="band-head">
-        <h2>How it works</h2>
-        <p>You know the price before any work starts.</p>
-      </div>
-      <div>
-        <ol class="steps">
-          <li>We talk for half an hour, free. You tell me what is slow, broken, or missing.</li>
-          <li>You get a fixed price in writing, with what it covers and when it will be done.</li>
-          <li>I build it, and you see progress every week in something that runs.</li>
-          <li>You start using it. I stay on for support if you want me to.</li>
-        </ol>
-
-        <p class="start-small"><strong>Start small.</strong> A good first job is one thing: one report, one connection between two programs, one tool that replaces one spreadsheet. You see how I work before you commit to anything bigger.</p>
-
-        <h3 class="sub">Ways to pay for it</h3>
-        <div class="ways">
-          <article>
-            <h4>Fixed price</h4>
-            <p>One job, one price, agreed up front. Most projects work this way.</p>
-          </article>
-          <article>
-            <h4>Monthly support</h4>
-            <p>A set monthly amount for upkeep and small changes.</p>
-          </article>
-          <article>
-            <h4>By the hour</h4>
-            <p>For consulting and work too small to quote.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
     <section id="who" class="band wrap">
       <div class="band-head">
         <h2>Who I help</h2>
@@ -307,7 +275,6 @@
       </div>
     </section>
 
-
     <section id="about" class="band wrap">
       <div class="band-head">
         <h2>Who does the work</h2>
@@ -330,7 +297,6 @@
         </ol>
       </div>
     </section>
-
 
     <section id="experience" class="band wrap">
       <div class="band-head">
@@ -376,6 +342,39 @@
             <div><dt>Scale</dt><dd>Millions of rows compared</dd></div>
           </dl>
         </article>
+      </div>
+    </section>
+
+    <section id="how" class="band wrap">
+      <div class="band-head">
+        <h2>How it works</h2>
+        <p>You know the price before any work starts.</p>
+      </div>
+      <div>
+        <ol class="steps">
+          <li>We talk for half an hour, free. You tell me what is slow, broken, or missing.</li>
+          <li>You get a fixed price in writing, with what it covers and when it will be done.</li>
+          <li>I build it, and you see progress every week in something that runs.</li>
+          <li>You start using it. I stay on for support if you want me to.</li>
+        </ol>
+
+        <p class="start-small"><strong>Start small.</strong> A good first job is one thing: one report, one connection between two programs, one tool that replaces one spreadsheet. You see how I work before you commit to anything bigger.</p>
+
+        <h3 class="sub">Ways to pay for it</h3>
+        <div class="ways">
+          <article>
+            <h4>Fixed price</h4>
+            <p>One job, one price, agreed up front. Most projects work this way.</p>
+          </article>
+          <article>
+            <h4>Monthly support</h4>
+            <p>A set monthly amount for upkeep and small changes.</p>
+          </article>
+          <article>
+            <h4>By the hour</h4>
+            <p>For consulting and work too small to quote.</p>
+          </article>
+        </div>
       </div>
     </section>
 

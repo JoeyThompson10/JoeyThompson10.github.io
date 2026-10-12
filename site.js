@@ -34,59 +34,70 @@
 })();
 
 /* ---------------------------------------------------------------------------
-   2. From the register to the supplier order.
+   2. Same store, two ways.
 
-   A made-up corner store: eight products, three suppliers.
+   Two copies of one made-up corner store get exactly the same customers for
+   two weeks: eight products, three suppliers.
 
-   Each day
-     Orders due that day arrive and go on the shelf.
-     The register rings up sales. A sale lowers the shelf count.
-     A customer who asks for a product that is out counts as one "ran out".
-     Any product at or below its reorder level, counting what is already on
-     the way, goes on a draft order for its supplier. The quantity brings it
-     back up to its full level, rounded up to the supplier's case size.
+   Counted by hand
+     Every Monday morning the owner counts each shelf and orders enough to
+     fill it, rounded to the supplier's case size. The count takes two hours.
 
-   Sending
-     The visitor sends each draft, or switches to automatic and every draft
-     is sent the day it is written. A sent order arrives after the supplier's
-     delivery time.
+   Software
+     Every sale lowers the count. After closing, the software updates how fast
+     each product is selling. A product whose count, plus what is already on
+     the way, will not last until a new order could arrive (with a margin for
+     a busy day) goes on an order to its supplier. Orders go out next morning.
+
+   Both stores
+     Deliveries arrive in the morning, after the supplier's delivery time.
+     A customer who wants a product that is out is turned away and the sale
+     is lost.
+
+   The whole two weeks is worked out up front, one snapshot per day, and
+   playing it only steps through the snapshots.
    ------------------------------------------------------------------------ */
 (() => {
   'use strict';
 
-  const root = document.getElementById('flow');
+  const root = document.getElementById('race');
   if (!root || !window.Intl) return;
 
-  const SUPPLIERS = [
-    { id: 'drinks', name: 'Beverage distributor', lead: 2 },
-    { id: 'snacks', name: 'Snack distributor', lead: 3 },
-    { id: 'goods', name: 'General goods wholesaler', lead: 5 }
-  ];
+  const SUPPLIERS = {
+    drinks: { name: 'beverage distributor', lead: 2 },
+    snacks: { name: 'snack distributor', lead: 3 },
+    goods: { name: 'general goods wholesaler', lead: 5 }
+  };
 
-  /* start: opening count, low: reorder level, full: level an order brings it back to,
-     pack: supplier case size, cost: per unit, rate: average sold per normal day */
+  /* start: Monday-morning count, full: what the shelf holds, pack: case size,
+     rate: average wanted per ordinary day, price: shelf price */
   const PRODUCTS = [
-    { name: 'Bottled water', supplier: 'drinks', start: 34, low: 30, full: 72, pack: 24, cost: 0.35, rate: 9 },
-    { name: 'Cola, 20 oz', supplier: 'drinks', start: 40, low: 24, full: 72, pack: 24, cost: 1.1, rate: 7 },
-    { name: 'Energy drink', supplier: 'drinks', start: 15, low: 14, full: 36, pack: 12, cost: 1.6, rate: 4 },
-    { name: 'Potato chips', supplier: 'snacks', start: 36, low: 22, full: 48, pack: 12, cost: 1.2, rate: 5 },
-    { name: 'Candy bars', supplier: 'snacks', start: 60, low: 26, full: 72, pack: 24, cost: 0.8, rate: 6 },
-    { name: 'Beef jerky', supplier: 'snacks', start: 9, low: 8, full: 24, pack: 12, cost: 4, rate: 1.5 },
-    { name: 'Paper towels', supplier: 'goods', start: 15, low: 9, full: 18, pack: 6, cost: 1.5, rate: 1 },
-    { name: 'Phone chargers', supplier: 'goods', start: 12, low: 7, full: 12, pack: 6, cost: 5, rate: 0.8 }
+    { name: 'Bottled water', word: 'water', supplier: 'drinks', start: 46, full: 72, pack: 24, rate: 9, price: 1.79 },
+    { name: 'Cola', word: 'cola', supplier: 'drinks', start: 50, full: 72, pack: 24, rate: 7, price: 2.29 },
+    { name: 'Energy drinks', word: 'energy drinks', supplier: 'drinks', start: 24, full: 36, pack: 12, rate: 4, price: 3.29 },
+    { name: 'Potato chips', word: 'chips', supplier: 'snacks', start: 34, full: 48, pack: 12, rate: 5, price: 2.19 },
+    { name: 'Candy bars', word: 'candy bars', supplier: 'snacks', start: 52, full: 72, pack: 24, rate: 6, price: 1.99 },
+    { name: 'Beef jerky', word: 'jerky', supplier: 'snacks', start: 16, full: 24, pack: 12, rate: 1.5, price: 7.99 },
+    { name: 'Paper towels', word: 'paper towels', supplier: 'goods', start: 14, full: 18, pack: 6, rate: 1, price: 2.49 },
+    { name: 'Phone chargers', word: 'phone chargers', supplier: 'goods', start: 12, full: 18, pack: 6, rate: 0.8, price: 12.99 }
   ];
 
-  const BUSY = { quiet: 0.6, normal: 1, busy: 1.5 };
+  const DAYS = 14;
+  const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const WEEKDAY = [0.9, 0.9, 0.95, 1, 1.15, 1.3, 1.1];   /* weekends are busier */
+  const HEAT = { drinks: 1.6, snacks: 1.1, goods: 1 };  /* heat wave: far more drinks */
+  const COUNT_HOURS = 2;
+  const MARGIN = 2;     /* safety margin, in standard deviations of demand */
+  const LEARN = 0.4;    /* how quickly the software follows a change in pace */
+  const FIRST_SEED = 20261017;
+  const STEP_MS = 650;
+  const LOW = 0.2;      /* a shelf at or under a fifth full shows as low */
 
   const $ = (id) => document.getElementById(id);
   const int = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
   const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-  const plural = (n, word) => int.format(n) + ' ' + word + (n === 1 ? '' : 's');
-
-  let state = null;
-  let rand = null;
-
-  /* ---------- Model ---------- */
+  const plural = (n, one, many) => int.format(n) + ' ' + (n === 1 ? one : many);
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function mulberry32(a) {
     return () => {
@@ -97,8 +108,8 @@
     };
   }
 
-  /* number of units asked for in a day, Poisson around the mean */
-  function draw(mean) {
+  /* customers wanting one product on one day, Poisson around the mean */
+  function draw(rand, mean) {
     const limit = Math.exp(-mean);
     let k = 0;
     let p = rand();
@@ -109,77 +120,130 @@
     return k;
   }
 
-  function reset() {
-    rand = mulberry32(20261010);
-    state = {
-      day: 0,
-      sold: 0,
-      sent: 0,
-      ranOut: 0,
-      today: [],
-      arrived: [],
-      drafts: [],
+  function list(words) {
+    if (words.length < 3) return words.join(' and ');
+    return words.slice(0, -1).join(', ') + ', and ' + words[words.length - 1];
+  }
+
+  /* ---------- Model ---------- */
+
+  function newStore() {
+    return {
+      items: PRODUCTS.map((p) => ({ p, onHand: p.start, onOrder: 0, pace: p.rate })),
       open: [],
-      items: PRODUCTS.map((p) => Object.assign({ onHand: p.start, onOrder: 0 }, p))
+      away: 0,
+      lost: 0,
+      hours: 0
     };
   }
 
-  const mode = () => root.querySelector('input[name="fl-mode"]:checked').value;
-  const busy = () => BUSY[root.querySelector('input[name="fl-busy"]:checked').value];
+  function snapshot(store, today) {
+    return {
+      onHand: store.items.map((it) => it.onHand),
+      onOrder: store.items.map((it) => it.onOrder),
+      away: store.away,
+      lost: store.lost,
+      hours: store.hours,
+      today
+    };
+  }
 
-  function writeDrafts() {
-    state.drafts = [];
-    SUPPLIERS.forEach((s) => {
-      const lines = [];
-      state.items.forEach((item) => {
-        if (item.supplier !== s.id) return;
-        if (item.onHand + item.onOrder > item.low) return;
-        const need = item.full - item.onHand - item.onOrder;
-        const qty = Math.ceil(need / item.pack) * item.pack;
-        lines.push({ item, qty, cost: qty * item.cost });
+  function placeOrders(store, lines, arrives) {
+    const bySupplier = {};
+    lines.forEach((line) => {
+      line.item.onOrder += line.qty;
+      (bySupplier[line.item.p.supplier] = bySupplier[line.item.p.supplier] || []).push(line);
+    });
+    Object.keys(bySupplier).forEach((id) => {
+      store.open.push({ due: arrives(SUPPLIERS[id].lead), lines: bySupplier[id] });
+    });
+  }
+
+  function simulate(seed, heat) {
+    const rand = mulberry32(seed);
+    const wanted = [];
+    for (let d = 0; d < DAYS; d += 1) {
+      wanted.push(PRODUCTS.map((p) => draw(rand, p.rate * WEEKDAY[d % 7] * (heat ? HEAT[p.supplier] : 1))));
+    }
+
+    const hand = newStore();
+    const soft = newStore();
+    const days = [{ hand: snapshot(hand, null), soft: snapshot(soft, null) }];
+
+    for (let d = 0; d < DAYS; d += 1) {
+      const today = { hand: { out: [], away: 0, counted: false, delivered: [], ordered: [] }, soft: { out: [], away: 0, delivered: [], ordered: [] } };
+
+      /* morning deliveries */
+      [['hand', hand], ['soft', soft]].forEach(([key, store]) => {
+        store.open.filter((o) => o.due === d).forEach((order) => {
+          order.lines.forEach((line) => {
+            line.item.onHand += line.qty;
+            line.item.onOrder -= line.qty;
+          });
+          today[key].delivered.push(SUPPLIERS[order.lines[0].item.p.supplier].name);
+        });
+        store.open = store.open.filter((o) => o.due !== d);
       });
-      if (lines.length) {
-        state.drafts.push({ supplier: s, lines, total: lines.reduce((sum, l) => sum + l.cost, 0) });
+
+      /* Monday morning: the owner counts and fills every shelf */
+      if (d % 7 === 0) {
+        const lines = [];
+        hand.items.forEach((item) => {
+          const qty = Math.round((item.p.full - item.onHand - item.onOrder) / item.p.pack) * item.p.pack;
+          if (qty > 0) lines.push({ item, qty });
+        });
+        placeOrders(hand, lines, (lead) => d + lead);
+        hand.hours += COUNT_HOURS;
+        today.hand.counted = true;
       }
-    });
-  }
 
-  function send(draft) {
-    draft.lines.forEach((line) => { line.item.onOrder += line.qty; });
-    state.open.push({ supplier: draft.supplier, lines: draft.lines, total: draft.total, due: state.day + draft.supplier.lead });
-    state.sent += 1;
-    state.drafts = state.drafts.filter((d) => d !== draft);
-  }
-
-  function runDay() {
-    state.day += 1;
-
-    state.arrived = state.open.filter((o) => o.due <= state.day);
-    state.open = state.open.filter((o) => o.due > state.day);
-    state.arrived.forEach((order) => {
-      order.lines.forEach((line) => {
-        line.item.onHand += line.qty;
-        line.item.onOrder -= line.qty;
+      /* the same customers walk into both stores */
+      [['hand', hand], ['soft', soft]].forEach(([key, store]) => {
+        store.items.forEach((item, i) => {
+          const want = wanted[d][i];
+          const sold = Math.min(want, item.onHand);
+          item.onHand -= sold;
+          item.sold = sold;
+          if (want > sold) {
+            store.away += want - sold;
+            store.lost += (want - sold) * item.p.price;
+            today[key].away += want - sold;
+            today[key].out.push(item.p.word);
+          }
+        });
       });
-    });
 
-    const factor = busy();
-    state.today = [];
-    state.items.forEach((item) => {
-      const asked = draw(item.rate * factor);
-      const sold = Math.min(asked, item.onHand);
-      item.onHand -= sold;
-      state.sold += sold;
-      if (asked > sold) state.ranOut += 1;
-      if (asked > 0) state.today.push({ item, sold, short: asked - sold });
-    });
-    state.today.sort((a, b) => b.sold - a.sold);
+      /* after closing: the software learns the pace and writes orders */
+      const lines = [];
+      soft.items.forEach((item) => {
+        item.pace = (1 - LEARN) * item.pace + LEARN * (item.sold / WEEKDAY[d % 7]);
+        const lead = SUPPLIERS[item.p.supplier].lead;
+        let need = 0;
+        for (let k = 1; k <= lead + 1; k += 1) need += item.pace * WEEKDAY[(d + k) % 7];
+        const trigger = Math.ceil(need + MARGIN * Math.sqrt(need));
+        const position = item.onHand + item.onOrder;
+        if (position > trigger) return;
+        /* as many whole cases as the shelf has room for; a single case if there
+           is no room for one, unless one is already on the way */
+        let qty = Math.floor((item.p.full - position) / item.p.pack) * item.p.pack;
+        if (qty === 0 && item.onOrder === 0) qty = item.p.pack;
+        if (qty === 0) return;
+        lines.push({ item, qty });
+        today.soft.ordered.push(item.p.word);
+      });
+      placeOrders(soft, lines, (lead) => d + 1 + lead);
 
-    writeDrafts();
-    if (mode() === 'auto') state.drafts.slice().forEach(send);
+      days.push({ hand: snapshot(hand, today.hand), soft: snapshot(soft, today.soft) });
+    }
+    return days;
   }
 
   /* ---------- Screen ---------- */
+
+  const shelf = $('race-shelf');
+  const strip = $('race-days');
+  const play = $('race-play');
+  const cells = { hand: [], soft: [] };
 
   function el(name, className, text) {
     const node = document.createElement(name);
@@ -188,150 +252,174 @@
     return node;
   }
 
-  function renderSales() {
-    const list = $('flow-sales');
-    list.textContent = '';
-    const total = state.today.reduce((sum, line) => sum + line.sold, 0);
-    $('flow-sales-sub').textContent = state.day === 0
-      ? 'The store has not opened yet. Run a day.'
-      : 'Day ' + state.day + ': ' + plural(total, 'item') + ' sold.';
-    state.today.forEach((line) => {
-      const row = el('li');
-      row.appendChild(el('span', 'flow-qty', line.sold + ' ×'));
-      row.appendChild(el('span', 'flow-name', line.item.name));
-      if (line.short) row.appendChild(el('span', 'flow-flag flow-out', plural(line.short, 'customer') + ' turned away'));
-      list.appendChild(row);
-    });
+  function buildCell() {
+    const td = el('td');
+    const wrap = el('span', 'race-cell');
+    const bar = el('span', 'race-bar');
+    bar.setAttribute('aria-hidden', 'true');
+    const fill = el('span', 'race-fill');
+    const way = el('span', 'race-way');
+    bar.appendChild(fill);
+    bar.appendChild(way);
+    const num = el('span', 'race-num');
+    const note = el('span', 'visually-hidden');
+    wrap.appendChild(bar);
+    wrap.appendChild(num);
+    wrap.appendChild(note);
+    td.appendChild(wrap);
+    return { td, wrap, fill, way, num, note };
   }
 
-  function statusOf(item) {
-    if (item.onHand === 0) return { text: item.onOrder ? 'Out, more on the way' : 'Out', kind: 'out' };
-    if (item.onOrder) return { text: 'On the way', kind: 'way' };
-    if (item.onHand <= item.low) return { text: 'Low', kind: 'low' };
-    return { text: 'Fine', kind: 'ok' };
+  PRODUCTS.forEach((p) => {
+    const row = el('tr');
+    const name = el('th', null, p.name);
+    name.scope = 'row';
+    row.appendChild(name);
+    ['hand', 'soft'].forEach((key) => {
+      const cell = buildCell();
+      cells[key].push(cell);
+      row.appendChild(cell.td);
+    });
+    shelf.appendChild(row);
+  });
+
+  for (let d = 0; d < DAYS; d += 1) strip.appendChild(el('li', null, DAY_NAMES[d % 7][0]));
+
+  function handNews(t) {
+    const parts = [];
+    if (t.counted) parts.push('Spent ' + COUNT_HOURS + ' hours counting shelves and writing orders.');
+    if (t.out.length) parts.push('Out of ' + list(t.out) + '. ' + plural(t.away, 'customer', 'customers') + ' turned away.');
+    else if (t.delivered.length && !t.counted) parts.push(t.delivered.length === 1 ? 'A delivery came in.' : 'Two deliveries came in.');
+    if (!t.out.length) parts.push(t.counted || t.delivered.length ? 'Nothing ran out.' : 'Nothing ran out. Nothing to do until Monday.');
+    return parts.join(' ');
   }
 
-  function renderShelf() {
-    const body = $('flow-shelf');
-    body.textContent = '';
-    state.items.forEach((item) => {
-      const status = statusOf(item);
-      const row = el('tr');
-      row.appendChild(el('th', 'left', item.name));
-      row.firstChild.scope = 'row';
-
-      const count = el('td', 'flow-count');
-      const meter = el('span', 'flow-meter');
-      meter.setAttribute('aria-hidden', 'true');
-      const scale = Math.max(item.full, item.onHand);
-      const fill = el('span', 'flow-fill flow-' + status.kind);
-      fill.style.width = (item.onHand / scale * 100) + '%';
-      const mark = el('span', 'flow-mark');
-      mark.style.left = (item.low / scale * 100) + '%';
-      meter.appendChild(fill);
-      meter.appendChild(mark);
-      count.appendChild(meter);
-      count.appendChild(el('span', 'flow-num', int.format(item.onHand)));
-      row.appendChild(count);
-
-      row.appendChild(el('td', 'flow-at', int.format(item.low)));
-      const state_ = el('td', 'left');
-      state_.appendChild(el('span', 'flow-flag flow-' + status.kind, status.text));
-      row.appendChild(state_);
-      body.appendChild(row);
-    });
+  function softNews(t) {
+    const parts = [];
+    if (t.out.length) parts.push('Out of ' + list(t.out) + '. ' + plural(t.away, 'customer', 'customers') + ' turned away.');
+    if (t.ordered.length) parts.push('Ordered ' + list(t.ordered) + ' tonight, before ' + (t.ordered.length === 1 ? 'it runs' : 'they run') + ' out.');
+    else if (t.delivered.length) parts.push(t.delivered.length === 1 ? 'A delivery came in.' : 'Two deliveries came in.');
+    if (!t.out.length) parts.push('Nothing ran out.');
+    return parts.join(' ');
   }
 
-  function orderCard(order, sent) {
-    const card = el('article', 'flow-order' + (sent ? ' flow-sent' : ''));
-    const head = el('div', 'flow-order-head');
-    head.appendChild(el('h5', null, order.supplier.name));
-    head.appendChild(el('span', 'flow-total', money.format(order.total)));
-    card.appendChild(head);
+  function verdict(days, heat) {
+    const end = days[DAYS];
+    const h = end.hand;
+    const s = end.soft;
+    const lead = heat ? 'In a heat wave, with the same customers in both stores, ' : 'Same customers, same shelves. ';
+    const handPart = (heat ? 'counting by hand' : 'Counting by hand') + ' turned away ' + plural(h.away, 'customer', 'customers') +
+      ', lost ' + money.format(h.lost) + ' in sales, and took ' + plural(h.hours, 'hour', 'hours') + ' of the owner’s time. ';
+    const softPart = s.away === 0
+      ? 'The software turned away nobody, and nobody counted anything.'
+      : 'The software turned away ' + int.format(s.away) + ', and nobody counted anything.';
+    return lead + handPart + softPart;
+  }
 
-    const lines = el('ul');
-    order.lines.forEach((line) => {
-      const row = el('li');
-      row.appendChild(el('span', 'flow-qty', line.qty + ' ×'));
-      row.appendChild(el('span', 'flow-name', line.item.name));
-      lines.appendChild(row);
+  let days = null;
+  let step = 0;
+  let timer = null;
+  let runs = 0;
+
+  const heat = () => root.querySelector('input[name="race-weeks"]:checked').value === 'heat';
+
+  function render() {
+    const snap = days[step];
+    $('race-day').textContent = step === 0
+      ? 'Week 1, Monday morning'
+      : 'Week ' + (step <= 7 ? 1 : 2) + ', ' + DAY_NAMES[(step - 1) % 7];
+
+    Array.prototype.forEach.call(strip.children, (li, i) => {
+      li.className = i < step - 1 ? 'is-past' : (i === step - 1 ? 'is-now' : '');
     });
-    card.appendChild(lines);
 
-    if (sent) {
-      const days = order.due - state.day;
-      card.appendChild(el('p', 'flow-due', 'Sent. Arrives ' + (days === 1 ? 'tomorrow' : 'in ' + days + ' days') + '.'));
+    if (step === 0) {
+      $('race-news-hand').textContent = 'Opens Monday with the same shelves as the store next door.';
+      $('race-news-soft').textContent = 'Opens Monday with the same shelves. Press play.';
     } else {
-      const button = el('button', 'button button-small', 'Send to ' + order.supplier.name.toLowerCase());
-      button.type = 'button';
-      button.addEventListener('click', () => {
-        send(order);
-        render('Order sent to ' + order.supplier.name.toLowerCase() + '. It arrives in ' + plural(order.supplier.lead, 'day') + '.');
-        const next = $('flow-orders').querySelector('button') || $('flow-day');
-        next.focus();
+      $('race-news-hand').textContent = handNews(snap.hand.today);
+      $('race-news-soft').textContent = softNews(snap.soft.today);
+    }
+
+    ['hand', 'soft'].forEach((key) => {
+      const s = snap[key];
+      PRODUCTS.forEach((p, i) => {
+        const c = cells[key][i];
+        const onHand = s.onHand[i];
+        const onOrder = s.onOrder[i];
+        const fill = Math.min(onHand / p.full, 1);
+        const way = Math.min(onOrder / p.full, 1 - fill);
+        c.fill.style.width = (fill * 100) + '%';
+        c.way.style.width = (way * 100) + '%';
+        c.fill.classList.toggle('is-low', onHand > 0 && onHand <= p.full * LOW);
+        c.wrap.classList.toggle('is-out', onHand === 0);
+        c.num.textContent = onHand === 0 ? 'Out' : int.format(onHand);
+        c.note.textContent = onOrder ? ', ' + int.format(onOrder) + ' on the way' : '';
       });
-      card.appendChild(button);
+      const awayCell = $('race-away-' + key);
+      awayCell.textContent = int.format(s.away);
+      awayCell.classList.toggle('is-bad', s.away > 0);
+      const lostCell = $('race-lost-' + key);
+      lostCell.textContent = money.format(s.lost);
+      lostCell.classList.toggle('is-bad', s.lost > 0);
+      $('race-hours-' + key).textContent = int.format(s.hours);
+    });
+
+    $('race-verdict').textContent = step === DAYS ? verdict(days, heat()) : '';
+    play.textContent = timer ? 'Pause' : (step === 0 ? 'Play two weeks' : (step === DAYS ? 'Play again' : 'Keep going'));
+    $('race-skip').disabled = step === DAYS;
+  }
+
+  function stop() {
+    if (timer) window.clearInterval(timer);
+    timer = null;
+  }
+
+  function load() {
+    stop();
+    days = simulate(runs === 0 ? FIRST_SEED : FIRST_SEED + runs * 7919, heat());
+    step = 0;
+  }
+
+  function advance() {
+    step += 1;
+    if (step >= DAYS) {
+      step = DAYS;
+      stop();
     }
-    return card;
+    render();
   }
 
-  function renderOrders() {
-    const box = $('flow-orders');
-    box.textContent = '';
-    state.drafts.forEach((draft) => box.appendChild(orderCard(draft, false)));
-    state.open.forEach((order) => box.appendChild(orderCard(order, true)));
-    if (!state.drafts.length && !state.open.length) {
-      box.appendChild(el('p', 'flow-empty', 'Nothing is low, so there is nothing to order.'));
+  function start() {
+    if (step === DAYS) {
+      runs += 1;
+      load();
     }
-    $('flow-orders-sub').textContent = state.drafts.length
-      ? plural(state.drafts.length, 'order') + ' ready for you to send.'
-      : (mode() === 'auto' ? 'Orders go out the day they are written.' : 'No order is waiting on you.');
+    timer = window.setInterval(advance, reduceMotion ? STEP_MS * 1.4 : STEP_MS);
+    advance();
   }
 
-  function summary() {
-    if (state.day === 0) return 'Opening counts are in. Run a day to see sales come through.';
-    const parts = ['Day ' + state.day + ' closed'];
-    if (state.arrived.length) parts.push(state.arrived.length === 1 ? '1 delivery put away' : state.arrived.length + ' deliveries put away');
-    if (state.drafts.length) parts.push(plural(state.drafts.length, 'order') + ' waiting for you to send');
-    else if (!state.arrived.length) parts.push('nothing needs you');
-    return parts.join(', ') + '.';
-  }
-
-  function render(message) {
-    renderSales();
-    renderShelf();
-    renderOrders();
-    $('fl-day').textContent = int.format(state.day);
-    $('fl-sold').textContent = int.format(state.sold);
-    $('fl-sent').textContent = int.format(state.sent);
-    $('fl-out').textContent = int.format(state.ranOut);
-    $('flow-status').textContent = message || summary();
-  }
-
-  /* ---------- Wiring ---------- */
-
-  reset();
-  runDay();
+  load();
   root.hidden = false;
   render();
 
-  $('flow-controls').addEventListener('submit', (event) => event.preventDefault());
-  $('flow-controls').addEventListener('change', (event) => {
-    if (event.target.name !== 'fl-mode') return;
-    if (mode() === 'auto') state.drafts.slice().forEach(send);
-    render(mode() === 'auto' ? 'The software now sends each order the day it is written.' : 'You send each order yourself.');
-  });
-  $('flow-day').addEventListener('click', () => {
-    runDay();
+  $('race-controls').addEventListener('submit', (event) => event.preventDefault());
+  $('race-controls').addEventListener('change', (event) => {
+    if (event.target.name !== 'race-weeks') return;
+    load();
     render();
   });
-  $('flow-week').addEventListener('click', () => {
-    for (let i = 0; i < 7; i += 1) runDay();
-    render();
+  play.addEventListener('click', () => {
+    if (timer) {
+      stop();
+      render();
+    } else {
+      start();
+    }
   });
-  $('flow-reset').addEventListener('click', () => {
-    reset();
-    runDay();
-    render('Started over at day 1.');
+  $('race-skip').addEventListener('click', () => {
+    stop();
+    step = DAYS;
+    render();
   });
 })();
