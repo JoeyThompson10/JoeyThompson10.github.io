@@ -127,67 +127,91 @@
     <section id="example" class="band band-wide wrap">
       <div class="band-head">
         <h2>An example you can try</h2>
-        <p>This is the kind of tool I build: a working replenishment planner for one product. Change the inputs, watch the cost and the projection move, then read and export any of sixteen reports.</p>
+        <p>This is the kind of tool I build: software that keeps a product in stock. Basic is the way most small stores already order. Plus and Pro show what else the same tool can do when you want it.</p>
       </div>
 
       <section class="plan card" id="plan" aria-labelledby="plan-title" hidden>
         <h3 id="plan-title">What to order, and when</h3>
-        <p class="card-sub">One product, a year ahead. Hold too little and you lose sales. Hold too much and you pay to carry it, and some of it may expire. The planner forecasts demand, orders up to a target when stock runs low, and prices out the result.</p>
+        <p class="card-sub">One product, one year of sales. Move the sliders and watch the shelf.</p>
+
+        <fieldset class="tier" id="plan-tier">
+          <legend class="visually-hidden">How much the tool does</legend>
+          <div class="seg-row tier-row">
+            <label><input type="radio" name="pl-tier" value="basic" checked><span>Basic</span></label>
+            <label><input type="radio" name="pl-tier" value="plus"><span>Plus</span></label>
+            <label><input type="radio" name="pl-tier" value="pro"><span>Pro</span></label>
+          </div>
+          <p class="tier-note" id="tier-note" aria-live="polite"></p>
+        </fieldset>
 
         <form class="plan-controls" id="plan-controls">
           <fieldset class="group">
-            <legend>Demand</legend>
+            <legend>Your store</legend>
             <div class="group-grid">
               <label class="field">
-                <span class="field-label">Seasonal profile</span>
-                <select id="pl-profile">
-                  <option value="flat">Flat, no season</option>
-                  <option value="summer">Summer peak</option>
-                  <option value="holiday" selected>Holiday peak</option>
-                  <option value="shoulder">Spring and fall peaks</option>
-                </select>
+                <span class="field-label">Sells about <output id="out-rate">20 a day</output></span>
+                <input type="range" id="pl-rate" min="2" max="100" step="1" value="20">
               </label>
               <label class="field">
+                <span class="field-label">Delivery takes <output id="out-lead">5 days</output></span>
+                <input type="range" id="pl-lead" min="1" max="21" step="1" value="5">
+              </label>
+              <label class="field" data-tier="plus">
+                <span class="field-label">Busy season</span>
+                <select id="pl-profile">
+                  <option value="flat">None, steady all year</option>
+                  <option value="summer">Summer</option>
+                  <option value="holiday" selected>The holidays</option>
+                  <option value="shoulder">Spring and fall</option>
+                </select>
+              </label>
+              <label class="field" data-tier="plus">
                 <span class="field-label">Day-to-day swings <output id="out-cv">40%</output></span>
                 <input type="range" id="pl-cv" min="10" max="60" step="5" value="40">
               </label>
-              <label class="field">
-                <span class="field-label">Planned demand <output id="out-planned">1,500 units</output></span>
-                <input type="range" id="pl-planned" min="0" max="4000" step="100" value="1500">
+              <label class="field" data-tier="pro">
+                <span class="field-label">Planned demand <output id="out-planned">300 units</output></span>
+                <input type="range" id="pl-planned" min="0" max="800" step="20" value="300">
               </label>
-              <label class="field">
+              <label class="field" data-tier="pro">
                 <span class="field-label">Planned for <output id="out-week">Week 20 (May)</output></span>
                 <input type="range" id="pl-week" min="1" max="52" step="1" value="20">
               </label>
-              <label class="field">
-                <span class="field-label">Committed quantity <output id="out-committed">300 units</output></span>
-                <input type="range" id="pl-committed" min="0" max="1500" step="50" value="300">
+              <label class="field" data-tier="pro">
+                <span class="field-label">Committed quantity <output id="out-committed">60 units</output></span>
+                <input type="range" id="pl-committed" min="0" max="300" step="10" value="60">
               </label>
             </div>
           </fieldset>
           <fieldset class="group">
-            <legend>Supply</legend>
+            <legend><span data-only="basic">Your two numbers</span><span data-tier="plus">How it orders</span></legend>
             <div class="group-grid">
-              <label class="field">
-                <span class="field-label">Supplier lead time <output id="out-lead">7 days</output></span>
-                <input type="range" id="pl-lead" min="2" max="21" step="1" value="7">
+              <label class="field" data-only="basic">
+                <span class="field-label">Order when it gets down to <output id="out-min">120</output></span>
+                <input type="range" id="pl-min" min="0" max="400" step="5" value="120">
               </label>
-              <label class="field">
-                <span class="field-label">Order cycle <output id="out-cycle">21 days</output></span>
+              <label class="field" data-only="basic">
+                <span class="field-label">Order enough to get back to <output id="out-max">400</output></span>
+                <input type="range" id="pl-max" min="5" max="900" step="5" value="400">
+              </label>
+              <p class="basic-hint" data-only="basic">These are the order point and the order-up-to level. Most small stores already work this way. The software just does the counting and sends the order.</p>
+              <label class="field" data-tier="plus">
+                <span class="field-label">Order about every <output id="out-cycle">21 days</output></span>
                 <input type="range" id="pl-cycle" min="7" max="35" step="1" value="21">
               </label>
-              <fieldset class="field seg">
-                <legend class="field-label">Service level target</legend>
+              <fieldset class="field seg" data-tier="plus">
+                <legend class="field-label">In-stock target</legend>
                 <div class="seg-row">
-                  <label><input type="radio" name="pl-svc" value="1.2816" checked><span>90%</span></label>
-                  <label><input type="radio" name="pl-svc" value="1.6449"><span>95%</span></label>
+                  <label><input type="radio" name="pl-svc" value="1.2816"><span>90%</span></label>
+                  <label><input type="radio" name="pl-svc" value="1.6449" checked><span>95%</span></label>
                   <label><input type="radio" name="pl-svc" value="2.3263"><span>99%</span></label>
                 </div>
               </fieldset>
+              <p class="levels-now" data-tier="plus" aria-live="polite">The software sets both numbers for you. Today it orders at <strong id="now-min">0</strong> and fills back up to <strong id="now-max">0</strong>, and both move with the season.</p>
             </div>
           </fieldset>
-          <fieldset class="group">
-            <legend>Cost</legend>
+          <fieldset class="group" data-tier="pro">
+            <legend>Costs</legend>
             <div class="group-grid">
               <label class="field">
                 <span class="field-label">Unit cost <output id="out-unit">$12</output></span>
@@ -221,7 +245,7 @@
           </fieldset>
         </form>
 
-        <div class="balance" aria-live="polite">
+        <div class="balance" aria-live="polite" data-tier="pro">
           <div class="balance-total">
             <p class="balance-label">What this plan costs, for the year</p>
             <p class="balance-figure" id="bal-total">$0</p>
@@ -243,30 +267,30 @@
         </div>
 
         <dl class="stats" aria-live="polite">
-          <div><dt>Fill rate</dt><dd id="st-fill">0%</dd></div>
-          <div><dt>Average on hand</dt><dd id="st-avg">0</dd></div>
-          <div><dt>Orders placed</dt><dd id="st-orders">0</dd></div>
-          <div><dt><span class="key-critical" aria-hidden="true"></span>Days out of stock</dt><dd id="st-out">0</dd></div>
+          <div><dt>Orders sent</dt><dd id="st-orders">0</dd></div>
+          <div><dt><span class="key-critical" aria-hidden="true"></span>Days sold out</dt><dd id="st-out">0</dd></div>
+          <div><dt>Sales missed</dt><dd id="st-short">0</dd></div>
+          <div><dt>Average on the shelf</dt><dd id="st-avg">0</dd></div>
         </dl>
 
         <div class="chart-block">
           <div class="report-head">
             <div>
-              <h4 id="chart-title">Stock projection</h4>
-              <p id="chart-desc">Projected units on hand for the next 52 weeks, against the three levels that steer it. The line falls as stock ships and jumps when an order arrives.</p>
+              <h4 id="chart-title">Stock on the shelf, over a year</h4>
+              <p id="chart-desc"></p>
             </div>
-            <p class="report-actions">
+            <p class="report-actions" data-tier="pro">
               <button type="button" class="button button-quiet button-small" id="plan-extract">Daily extract (CSV)</button>
             </p>
           </div>
           <ul class="legend">
-            <li><span class="key k-line k-main" aria-hidden="true"></span>Projected on hand</li>
-            <li><span class="key k-line k-max" aria-hidden="true"></span>Order-up-to level (max)</li>
-            <li><span class="key k-line k-min" aria-hidden="true"></span>Reorder point (min)</li>
-            <li><span class="key k-line k-safety" aria-hidden="true"></span>Safety stock</li>
-            <li><span class="key k-po" aria-hidden="true"></span>Order placed</li>
+            <li><span class="key k-line k-main" aria-hidden="true"></span>On the shelf</li>
+            <li><span class="key k-line k-max" aria-hidden="true"></span>Order-up-to level</li>
+            <li><span class="key k-line k-min" aria-hidden="true"></span>Order point</li>
+            <li data-tier="plus"><span class="key k-line k-safety" aria-hidden="true"></span>Safety stock</li>
+            <li><span class="key k-po" aria-hidden="true"></span>Order sent</li>
             <li id="key-expired"><span class="key k-exp" aria-hidden="true"></span>Stock expired</li>
-            <li><span class="key k-out" aria-hidden="true"></span>Out of stock</li>
+            <li><span class="key k-out" aria-hidden="true"></span>Shelf empty</li>
           </ul>
           <div class="sim-plot" id="plan-plot">
             <svg id="plan-chart" viewBox="0 0 640 320" role="img" aria-labelledby="chart-title chart-desc" tabindex="0"></svg>
@@ -274,24 +298,15 @@
           </div>
         </div>
 
-        <fieldset class="report-picker" id="report-picker">
+        <fieldset class="report-picker" id="report-picker" data-tier="plus">
           <legend>Reports</legend>
           <div class="pick-group">
-            <span class="pick-label" id="pick-cost">Cost</span>
-            <div class="pick-row" role="group" aria-labelledby="pick-cost">
-              <label><input type="radio" name="pl-report" value="serviceTradeoff" checked><span>Service level trade-off</span></label>
-              <label><input type="radio" name="pl-report" value="cycleTradeoff"><span>Order cycle trade-off</span></label>
-              <label><input type="radio" name="pl-report" value="costMonthly"><span>Cost by month</span></label>
-              <label><input type="radio" name="pl-report" value="lots"><span>Lots and expiry</span></label>
-            </div>
-          </div>
-          <div class="pick-group">
-            <span class="pick-label" id="pick-inventory">Inventory</span>
+            <span class="pick-label" id="pick-inventory">Stock</span>
             <div class="pick-row" role="group" aria-labelledby="pick-inventory">
+              <label><input type="radio" name="pl-report" value="orders" checked><span>Orders it would send</span></label>
               <label><input type="radio" name="pl-report" value="position"><span>Inventory position</span></label>
               <label><input type="radio" name="pl-report" value="projection"><span>Projected inventory</span></label>
               <label><input type="radio" name="pl-report" value="levels"><span>Key levels</span></label>
-              <label><input type="radio" name="pl-report" value="orders"><span>Suggested orders</span></label>
               <label><input type="radio" name="pl-report" value="service"><span>Service by month</span></label>
               <label><input type="radio" name="pl-report" value="exceptions"><span>Exceptions</span></label>
             </div>
@@ -303,8 +318,17 @@
               <label><input type="radio" name="pl-report" value="forecastMonthly"><span>Monthly forecast</span></label>
               <label><input type="radio" name="pl-report" value="accuracy"><span>Forecast against actual</span></label>
               <label><input type="radio" name="pl-report" value="season"><span>Seasonal profile</span></label>
-              <label><input type="radio" name="pl-report" value="customers"><span>Customer history</span></label>
-              <label><input type="radio" name="pl-report" value="customersWeekly"><span>Customer history by week</span></label>
+              <label data-tier="pro"><input type="radio" name="pl-report" value="customers"><span>Customer history</span></label>
+              <label data-tier="pro"><input type="radio" name="pl-report" value="customersWeekly"><span>Customer history by week</span></label>
+            </div>
+          </div>
+          <div class="pick-group" data-tier="pro">
+            <span class="pick-label" id="pick-cost">Cost</span>
+            <div class="pick-row" role="group" aria-labelledby="pick-cost">
+              <label><input type="radio" name="pl-report" value="serviceTradeoff"><span>Service level trade-off</span></label>
+              <label><input type="radio" name="pl-report" value="cycleTradeoff"><span>Order cycle trade-off</span></label>
+              <label><input type="radio" name="pl-report" value="costMonthly"><span>Cost by month</span></label>
+              <label><input type="radio" name="pl-report" value="lots"><span>Lots and expiry</span></label>
             </div>
           </div>
         </fieldset>
@@ -312,11 +336,11 @@
         <div class="report" id="report" role="region" aria-labelledby="report-title">
           <div class="report-head">
             <div>
-              <h4 id="report-title">Service level trade-off</h4>
+              <h4 id="report-title">Orders it would send</h4>
               <p id="report-blurb"></p>
             </div>
             <p class="report-actions">
-              <button type="button" class="button button-quiet button-small" id="report-export">Export report (CSV)</button>
+              <button type="button" class="button button-quiet button-small" id="report-export">Download as a spreadsheet (CSV)</button>
             </p>
           </div>
           <p class="report-status" id="report-status" role="status"></p>
@@ -328,29 +352,29 @@
         </div>
 
         <div class="plan-foot">
-          <button type="button" class="button button-quiet button-small" id="plan-roll">Roll a new sales history</button>
+          <button type="button" class="button button-quiet button-small" id="plan-roll">Try another year of sales</button>
           <details class="glossary">
             <summary>What the terms mean</summary>
             <dl>
-              <div><dt>Customer history</dt><dd>Past sales broken out by who bought. It is the raw material for the forecast.</dd></div>
-              <div><dt>Seasonal profile</dt><dd>The shape of a normal year, as a multiplier on average sales.</dd></div>
-              <div><dt>Planned demand</dt><dd>Demand you know is coming that history would not predict, such as a promotion or one large contract order.</dd></div>
-              <div><dt>Committed quantity</dt><dd>Stock on the shelf already promised to open customer orders. Here it ships over the first five days, and nobody else can have it.</dd></div>
-              <div><dt>Inventory position</dt><dd>On hand, plus on order, minus committed. This is the number the planner watches.</dd></div>
-              <div><dt>Carrying cost</dt><dd>What it costs to hold stock for a year, as a share of its value: the money tied up, the space, insurance, and shrinkage.</dd></div>
-              <div><dt>Shelf life</dt><dd>How long a unit can sit before it has to be written off. Stock ships oldest first, and the planner will not order more than it expects to sell with a tenth of the shelf life to spare.</dd></div>
-              <div><dt>Fill rate</dt><dd>Units shipped as a share of units customers asked for.</dd></div>
-              <div><dt>Safety stock</dt><dd>Extra stock held to cover the gap between the forecast and what actually sells.</dd></div>
-              <div><dt>Reorder point (min)</dt><dd>The level that triggers an order: expected demand during the supplier's lead time, plus safety stock.</dd></div>
-              <div><dt>Order-up-to level (max)</dt><dd>The target an order brings you back up to: expected demand over the lead time and the order cycle, plus safety stock. Also written OUTL, and called the max in a min/max system.</dd></div>
+              <div><dt>Order point</dt><dd>The level that triggers an order. Set it to cover what sells while you wait for the delivery, plus a little extra. Also called the reorder point, or the min.</dd></div>
+              <div><dt>Order-up-to level</dt><dd>The level an order brings you back up to. The gap between the two numbers is roughly how much you order each time. Also called the max.</dd></div>
+              <div data-tier="plus"><dt>Safety stock</dt><dd>Extra stock held to cover the gap between the forecast and what actually sells. The order point includes it.</dd></div>
+              <div data-tier="plus"><dt>In-stock target</dt><dd>How often the shelf should still have stock when the next delivery arrives. A higher target means more safety stock. Also called the service level.</dd></div>
+              <div data-tier="plus"><dt>Inventory position</dt><dd>On the shelf, plus on order, minus anything already promised to a customer. This is the number the software compares to the order point.</dd></div>
+              <div data-tier="plus"><dt>Seasonal profile</dt><dd>The shape of a normal year, as a multiplier on average sales.</dd></div>
+              <div data-tier="plus"><dt>Fill rate</dt><dd>Units sold as a share of units customers asked for.</dd></div>
+              <div data-tier="pro"><dt>Planned demand</dt><dd>Demand you know is coming that history would not predict, such as a promotion or one large order.</dd></div>
+              <div data-tier="pro"><dt>Committed quantity</dt><dd>Stock on the shelf already promised to open customer orders. Here it ships over the first five days, and nobody else can have it.</dd></div>
+              <div data-tier="pro"><dt>Carrying cost</dt><dd>What it costs to hold stock for a year, as a share of its value: the money tied up, the space, insurance, and shrinkage.</dd></div>
+              <div data-tier="pro"><dt>Shelf life</dt><dd>How long a unit can sit before it has to be written off. Stock ships oldest first, and the software will not order more than it expects to sell with a tenth of the shelf life to spare.</dd></div>
+              <div data-tier="pro"><dt>Customer history</dt><dd>Past sales broken out by who bought. It is the raw material for the forecast.</dd></div>
             </dl>
           </details>
         </div>
-        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own sales history, open orders, costs, and supplier delivery times.</p>
+        <p class="card-note">A simplified model running on made-up sales. A real one would run on your own register or sales history, and send orders the way your suppliers take them.</p>
       </section>
 
       <p class="next">Is there a job like this in your business? <a href="mailto:joey@thompsonswe.com?subject=Project%20inquiry&amp;body=My%20business%3A%0A%0AWhat%20is%20slowing%20us%20down%3A%0A%0ABest%20way%20and%20time%20to%20reach%20me%3A%0A">Tell me about it</a> and I will say whether it is worth building.</p>
-
     </section>
 
     <section id="services" class="band wrap">

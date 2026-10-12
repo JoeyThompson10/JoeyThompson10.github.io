@@ -34,7 +34,15 @@
 })();
 
 /* ---------------------------------------------------------------------------
-   2. Replenishment planner for one product, 52 weeks ahead.
+   2. Replenishment planner for one product, 52 weeks ahead, in three tiers.
+
+   Tiers
+     Basic  The visitor sets the two numbers small stores already use: the
+            order point and the order-up-to level. Steady sales, no costs.
+     Plus   The software sets both numbers from the forecast below and moves
+            them with the season. Adds safety stock and most reports.
+     Pro    Everything: planned and committed demand, costs, shelf life, the
+            cost balance, trade-off reports, and the daily extract.
 
    Forecast
      Last year's sales by customer are simulated, then de-seasonalized to get a
@@ -108,7 +116,19 @@
   let noise = null;
   let plan = null;
   let report = null;
-  let active = 'position';
+  let active = 'orders';
+  let tier = 'basic';
+  const RANK = { basic: 0, plus: 1, pro: 2 };
+  const TIER_NOTES = {
+    basic: 'You choose two numbers. When stock gets down to the first, the software orders enough to bring it back up to the second. Most small stores already order this way; the difference is that nobody has to count.',
+    plus: 'The software picks both numbers for you from your sales, and moves them ahead of busy and slow seasons. You choose how often to order and how often the shelf should be stocked.',
+    pro: 'Adds what each choice costs: money tied up in stock, the cost of placing orders, lost sales, and stock that expires. It finds where those balance, and every report downloads as a spreadsheet.'
+  };
+  const CHART_DESC = {
+    basic: 'It drops as things sell and jumps when a delivery arrives. A dot is an order the software sent. Red along the bottom is a day the shelf was empty.',
+    plus: 'Both levels now come from the forecast, so they rise ahead of the busy season and fall after it. The dotted line is safety stock.',
+    pro: 'The same projection, now priced out. Hollow circles are stock that expired.'
+  };
   let cursor = null;
   let chart = null;
   let animatePending = !reduceMotion;
@@ -169,7 +189,7 @@
     /* Last year's sales by customer */
     const byCustomer = CUSTOMERS.map((c, ci) =>
       idx.map((v, w) => {
-        const shaped = 700 * c.share * (1 + c.season * (v - 1)) * (1 + c.trend * (w / (WEEKS - 1) - 0.5));
+        const shaped = 7 * inp.rate * c.share * (1 + c.season * (v - 1)) * (1 + c.trend * (w / (WEEKS - 1) - 0.5));
         return Math.max(0, Math.round(shaped * (1 + c.noise * noise.history[ci][w])));
       })
     );
@@ -196,21 +216,25 @@
       sumVariance.push(sumVariance[i] + forecast[i] * forecast[i]);
     }
     const ahead = (prefix, t, n) => prefix[t + n + 1] - prefix[t + 1];
-    const safetyAt = (t) => inp.z * inp.cv * Math.sqrt(ahead(sumVariance, t, inp.lead));
-    const reorderAt = (t) => ahead(sumExpected, t, inp.lead) + safetyAt(t);
+    /* Basic: the two numbers are whatever the visitor set, and there is no safety stock line */
+    const fixed = inp.fixedMin !== undefined;
+    const safetyAt = fixed ? () => 0 : (t) => inp.z * inp.cv * Math.sqrt(ahead(sumVariance, t, inp.lead));
+    const reorderAt = fixed ? () => inp.fixedMin : (t) => ahead(sumExpected, t, inp.lead) + safetyAt(t);
     /* Days of demand one order may cover: the order cycle, capped so the lot can sell through before it expires */
     const coverAt = (t) => {
       if (!inp.shelf) return inp.cycle;
       const safetyDays = safetyAt(t) / Math.max(1, forecast[t]);
       return Math.max(1, Math.min(inp.cycle, Math.floor(inp.shelf * SELL_THROUGH - safetyDays)));
     };
-    const orderUpToAt = (t) => ahead(sumExpected, t, inp.lead + coverAt(t)) + safetyAt(t);
+    const orderUpToAt = fixed ? () => inp.fixedMax : (t) => ahead(sumExpected, t, inp.lead + coverAt(t)) + safetyAt(t);
 
     /* Opening stock ignores planned and committed demand, so changing them shows their effect */
     const openSafety = safetyAt(0);
     const openMin = ahead(sumForecast, 0, inp.lead) + openSafety;
     const openMax = ahead(sumForecast, 0, inp.lead + coverAt(0)) + openSafety;
-    const start = Math.round(openMin + 0.6 * (openMax - openMin));
+    const start = fixed
+      ? Math.round(inp.fixedMin + 0.6 * (inp.fixedMax - inp.fixedMin))
+      : Math.round(openMin + 0.6 * (openMax - openMin));
 
     const perDay = Math.floor(inp.committed / SHIP_DAYS);
     const carryPerUnitDay = (inp.unitCost * inp.carryRate) / 365;
@@ -533,7 +557,7 @@
     svg.appendChild(area);
     svg.appendChild(el('path', { class: 'level level-max', d: maxPath }));
     svg.appendChild(el('path', { class: 'level level-min', d: minPath }));
-    svg.appendChild(el('path', { class: 'level level-safety', d: safetyPath }));
+    if (tier !== 'basic') svg.appendChild(el('path', { class: 'level level-safety', d: safetyPath }));
     const line = el('path', { class: 'line', d: path });
     svg.appendChild(line);
 
@@ -568,14 +592,17 @@
     const events = [];
     if (d.expired > 0) events.push('Expired ' + int.format(d.expired));
     if (d.received > 0) events.push('Received ' + int.format(d.received));
-    if (d.short > 0) events.push('Out of stock, ' + int.format(d.short) + ' short');
-    if (d.ordered > 0) events.push('Ordered ' + int.format(d.ordered));
+    if (d.short > 0) events.push('Shelf empty, ' + int.format(d.short) + ' sales missed');
+    if (d.ordered > 0) events.push('Order sent for ' + int.format(d.ordered));
 
     tip.textContent = '';
     const head = document.createElement('strong');
     head.textContent = weekName(d);
     tip.appendChild(head);
-    [['On hand', d.onHand], ['Inventory position', d.position], ['Order-up-to level', d.orderUpTo], ['Reorder point', d.reorder], ['Safety stock', d.safety], ['Demand', d.demand]].forEach((entry) => {
+    const rows = tier === 'basic'
+      ? [['On the shelf', d.onHand], ['On order', d.onOrder], ['Order-up-to level', d.orderUpTo], ['Order point', d.reorder], ['Wanted today', d.demand]]
+      : [['On the shelf', d.onHand], ['Inventory position', d.position], ['Order-up-to level', d.orderUpTo], ['Order point', d.reorder], ['Safety stock', d.safety], ['Wanted today', d.demand]];
+    rows.forEach((entry) => {
       const row = document.createElement('span');
       const name = document.createElement('i');
       name.textContent = entry[0];
@@ -651,13 +678,13 @@
     return rows;
   }
 
-  const DAILY = [col('week', 'Week'), col('day', 'Day'), col('month', 'Month', 'text'), col('forecast', 'Forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed shipped'), col('demand', 'Total demand'), col('sold', 'Shipped'), col('short', 'Short'), col('received', 'Received'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('safety', 'Safety stock'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level'), col('ordered', 'Ordered'), col('expired', 'Expired'), col('value', 'Inventory value', 'usd2'), col('carrying', 'Carrying cost', 'usd2')];
+  const DAILY = [col('week', 'Week'), col('day', 'Day'), col('month', 'Month', 'text'), col('forecast', 'Forecast'), col('planned', 'Planned demand'), col('committedShip', 'Committed shipped'), col('demand', 'Total demand'), col('sold', 'Shipped'), col('short', 'Short'), col('received', 'Received'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('safety', 'Safety stock'), col('reorder', 'Order point'), col('orderUpTo', 'Order-up-to level'), col('ordered', 'Ordered'), col('expired', 'Expired'), col('value', 'Inventory value', 'usd2'), col('carrying', 'Carrying cost', 'usd2')];
 
   const REPORTS = {
     position: (p) => ({
       title: 'Inventory position',
-      blurb: 'Where the product stands at the end of each week. Inventory position is on hand, plus on order, minus committed. It is the number the planner compares to the reorder point.',
-      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level'), col('daysOfSupply', 'Days of supply', 'one'), col('status', 'Status', 'text')],
+      blurb: 'Where the product stands at the end of each week. Inventory position is on hand, plus on order, minus committed. It is the number the software compares to the order point.',
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('onHand', 'On hand'), col('committed', 'Committed'), col('available', 'Available'), col('onOrder', 'On order'), col('position', 'Inventory position'), col('reorder', 'Order point'), col('orderUpTo', 'Order-up-to level'), col('daysOfSupply', 'Days of supply', 'one'), col('status', 'Status', 'text')],
       rows: p.weeks,
       footer: 'Average on hand ' + int.format(p.year.average) + ' units. ' + one.format(p.year.turns) + ' inventory turns a year.'
     }),
@@ -673,17 +700,17 @@
     levels: (p) => ({
       title: 'Key levels',
       blurb: 'The three lines on the chart, week by week. They move with the forecast, so they rise ahead of a busy season or a planned-demand week and fall after it.',
-      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('forecastPerDay', 'Forecast per day'), col('leadDemand', 'Lead-time demand'), col('safety', 'Safety stock'), col('reorder', 'Reorder point (min)'), col('orderUpTo', 'Order-up-to level (max)'), col('orderSize', 'Order size at the min')],
+      columns: [col('week', 'Week'), col('month', 'Month', 'text'), col('forecastPerDay', 'Forecast per day'), col('leadDemand', 'Lead-time demand'), col('safety', 'Safety stock'), col('reorder', 'Order point (min)'), col('orderUpTo', 'Order-up-to level (max)'), col('orderSize', 'Order size at the min')],
       rows: p.weeks,
       footer: 'Lead time ' + p.inp.lead + ' days. Order cycle ' + p.inp.cycle + ' days' + (p.year.capped ? ', capped to about ' + Math.round(p.year.cover) + ' days by the shelf life.' : '.')
     }),
 
     orders: (p) => ({
-      title: 'Suggested orders',
-      blurb: 'Every purchase order the planner would place this year. Each is sized to bring the inventory position back up to the order-up-to level.',
-      columns: [col('no', 'Order'), col('placedOn', 'Placed', 'text'), col('dueOn', 'Due', 'text'), col('qty', 'Quantity'), col('position', 'Position when placed'), col('reorder', 'Reorder point'), col('orderUpTo', 'Order-up-to level')],
+      title: 'Orders it would send',
+      blurb: 'Every order the software would send this year, without anyone counting. Each one brings the stock back up to the order-up-to level.',
+      columns: [col('no', 'Order'), col('placedOn', 'Sent', 'text'), col('dueOn', 'Arrives', 'text'), col('qty', 'Quantity'), col('position', tier === 'basic' ? 'Stock when sent' : 'Inventory position when sent'), col('reorder', 'Order point'), col('orderUpTo', 'Order-up-to level')],
       rows: p.orders.map((o) => Object.assign({ placedOn: weekDay(o.placed), dueOn: o.due < DAYS ? weekDay(o.due) : 'Next year' }, o)),
-      empty: 'No orders. Stock never fell to the reorder point.',
+      empty: 'No orders. Stock never fell to the order point.',
       footer: int.format(p.orders.length) + ' orders, ' + int.format(p.orders.reduce((sum, o) => sum + o.qty, 0)) + ' units in total.'
     }),
 
@@ -739,7 +766,7 @@
 
     lots: (p) => ({
       title: 'Lots and expiry',
-      blurb: 'Every receipt is a lot with its own expiry date. Stock ships oldest first, and whatever is still on the shelf when a lot reaches its shelf life is written off.',
+      blurb: 'Every delivery is a lot with its own expiry date. Stock ships oldest first, and whatever is still on the shelf when a lot reaches its shelf life is written off.',
       columns: [col('source', 'Lot', 'text'), col('receivedOn', 'Received', 'text'), col('expiresOn', 'Expires', 'text'), col('qty', 'Quantity'), col('shipped', 'Shipped'), col('expired', 'Expired'), col('left', 'Left at year end'), col('writeOff', 'Written off', 'usd')],
       rows: p.lots.map((lot) => Object.assign({
         receivedOn: weekDay(lot.received),
@@ -873,21 +900,27 @@
   }
 
   function update() {
+    const rate = Number($('pl-rate').value);
+    const fixedMin = Number($('pl-min').value);
+    const fixedMax = Number($('pl-max').value);
     const lead = Number($('pl-lead').value);
     const cycle = Number($('pl-cycle').value);
     const cv = Number($('pl-cv').value) / 100;
-    const plannedQty = Number($('pl-planned').value);
+    const plannedQty = tier === 'pro' ? Number($('pl-planned').value) : 0;
     const plannedWeek = Number($('pl-week').value);
-    const committed = Number($('pl-committed').value);
-    const profile = $('pl-profile').value;
+    const committed = tier === 'pro' ? Number($('pl-committed').value) : 0;
+    const profile = tier === 'basic' ? 'flat' : $('pl-profile').value;
     const z = Number(root.querySelector('input[name="pl-svc"]:checked').value);
     const unitCost = Number($('pl-unit').value);
     const carryRate = Number($('pl-carry').value) / 100;
     const orderCost = Number($('pl-ordercost').value);
     const margin = Number($('pl-margin').value);
-    const shelf = Number($('pl-shelf').value);
+    const shelf = tier === 'pro' ? Number($('pl-shelf').value) : 0;
 
-    $('out-lead').textContent = lead + ' days';
+    $('out-rate').textContent = rate + ' a day';
+    $('out-min').textContent = int.format(fixedMin);
+    $('out-max').textContent = int.format(fixedMax);
+    $('out-lead').textContent = lead + (lead === 1 ? ' day' : ' days');
     $('out-cycle').textContent = cycle + ' days';
     $('out-cv').textContent = Math.round(cv * 100) + '%';
     $('out-planned').textContent = int.format(plannedQty) + ' units';
@@ -898,9 +931,13 @@
     $('out-ordercost').textContent = '$' + orderCost;
     $('out-margin').textContent = '$' + margin;
 
-    plan = buildPlan({ lead, cycle, cv, plannedQty, plannedWeek, committed, profile, z, unitCost, carryRate, orderCost, margin, shelf });
-    $('st-fill').textContent = one.format(plan.stats.fillRate * 100) + '%';
+    const inputs = { rate, lead, cycle, cv, plannedQty, plannedWeek, committed, profile, z, unitCost, carryRate, orderCost, margin, shelf };
+    if (tier === 'basic') Object.assign(inputs, { fixedMin, fixedMax, cv: 0.4 });
+    plan = buildPlan(inputs);
+    $('st-short').textContent = int.format(plan.year.short) + (plan.year.short === 1 ? ' unit' : ' units');
     $('st-avg').textContent = int.format(plan.stats.average);
+    $('now-min').textContent = int.format(plan.days[0].reorder);
+    $('now-max').textContent = int.format(plan.days[0].orderUpTo);
     $('st-orders').textContent = int.format(plan.stats.orders);
     $('st-out').textContent = int.format(plan.stats.outDays);
 
@@ -952,13 +989,60 @@
 
   /* ---------- Wiring ---------- */
 
+  function applyTier() {
+    root.querySelectorAll('[data-tier]').forEach((node) => {
+      node.hidden = RANK[tier] < RANK[node.getAttribute('data-tier')];
+    });
+    root.querySelectorAll('[data-only]').forEach((node) => {
+      node.hidden = node.getAttribute('data-only') !== tier;
+    });
+    $('tier-note').textContent = TIER_NOTES[tier];
+    $('chart-desc').textContent = CHART_DESC[tier];
+    /* fall back to the order list when the open report is not part of this tier */
+    const current = root.querySelector('input[name="pl-report"][value="' + active + '"]');
+    if (!current || current.closest('[hidden]')) {
+      active = 'orders';
+      root.querySelector('input[name="pl-report"][value="orders"]').checked = true;
+    }
+    $('report-status').textContent = '';
+  }
+
+  /* Basic: the order-up-to level stays above the order point, and both scale when the sales rate changes */
+  let lastRate = Number($('pl-rate').value);
+  function fitBasicNumbers(changed) {
+    const rate = $('pl-rate');
+    const low = $('pl-min');
+    const high = $('pl-max');
+    const round5 = (v) => Math.round(v / 5) * 5;
+    if (changed === rate) {
+      const scale = Number(rate.value) / lastRate;
+      lastRate = Number(rate.value);
+      low.max = Math.max(50, round5(lastRate * 20));
+      high.max = Math.max(100, round5(lastRate * 45));
+      low.value = round5(Number(low.value) * scale);
+      high.value = round5(Number(high.value) * scale);
+    }
+    if (Number(high.value) <= Number(low.value)) {
+      if (changed === high) low.value = Math.max(0, Number(high.value) - 5);
+      else high.value = Number(low.value) + 5;
+    }
+  }
+
   root.hidden = false;
-  const picked = root.querySelector('input[name="pl-report"]:checked');
-  if (picked && REPORTS[picked.value]) active = picked.value;
+  applyTier();
   rollNoise();
   update();
 
-  $('plan-controls').addEventListener('input', update);
+  $('plan-tier').addEventListener('change', (event) => {
+    if (!Object.prototype.hasOwnProperty.call(RANK, event.target.value)) return;
+    tier = event.target.value;
+    applyTier();
+    update();
+  });
+  $('plan-controls').addEventListener('input', (event) => {
+    if (event.target.id === 'pl-rate' || event.target.id === 'pl-min' || event.target.id === 'pl-max') fitBasicNumbers(event.target);
+    update();
+  });
   $('plan-controls').addEventListener('submit', (event) => event.preventDefault());
   $('plan-roll').addEventListener('click', () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
